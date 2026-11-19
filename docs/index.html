@@ -6,7 +6,7 @@
   <meta name="description" content="SOLID 프로젝트의 기술 블로그">
   <title>SOLID Engineering</title>
   <link rel="stylesheet" href="./style.css?v=2">
-  <script type="module" src="./app.js?v=2"></script>
+  <script type="module" src="./app.js?v=3"></script>
 </head>
 <body>
   <a class="skip" href="#main">본문으로 건너뛰기</a>
@@ -44,11 +44,11 @@
       <label>요약<input name="summary" maxlength="200"></label>
       <div class="attachments" id="drop-zone">
         <label class="file-button">파일 첨부<input id="attachment-file" type="file" multiple></label>
-        <span>파일을 여기에 놓으세요 · 파일당 최대 5 MB</span>
+        <span>스크린샷은 본문에서 Ctrl+V · 파일당 최대 5 MB</span>
       </div>
       <p id="attachment-status" class="attachment-status" role="status"></p>
       <label>본문 · Markdown<textarea name="body" required rows="16" maxlength="50000" placeholder="## 제목"></textarea></label>
-      <details><summary>본문 미리보기</summary><div class="prose" id="preview"></div></details>
+      <details id="preview-details"><summary>본문 미리보기</summary><div class="prose" id="preview"></div></details>
       <p class="feedback" role="status"></p>
       <button class="primary">발행</button>
     </form>

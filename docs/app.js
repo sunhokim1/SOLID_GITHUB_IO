@@ -37,11 +37,7 @@ function inline(node, text) {
         const image = element('img');
         image.alt = match[2];
         const pending = attachments.find((item) => item.path === match[3]);
-        if (pending) {
-          node.append('첨부 이미지 · ' + pending.label);
-          continue;
-        }
-        image.src = match[3];
+        image.src = pending?.previewUrl || match[3];
         image.loading = 'lazy';
         image.referrerPolicy = 'no-referrer';
         node.append(image);
@@ -296,7 +292,7 @@ function openEditor(post) {
   }
   editorReturn = location.hash && location.hash !== '#write' ? location.hash : '#articles';
   editing = post;
-  attachments = [];
+  clearAttachments();
   $('#attachment-status').textContent = '';
   edit.reset();
   feedback(edit);
@@ -314,27 +310,58 @@ function openEditor(post) {
   edit.elements.title.focus();
 }
 
+const imageExtensions = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+};
+
+function clearAttachments() {
+  for (const item of attachments) {
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+  }
+  attachments = [];
+}
+
 function queueFiles(files) {
   if (busy) return;
   const skipped = [];
+  const insertions = [];
+  let includesImage = false;
   for (const file of files) {
     if (file.size > 5_000_000) {
-      skipped.push(file.name);
+      skipped.push(file.name || '스크린샷');
       continue;
     }
-    const ext = file.name.split('.').at(-1).toLowerCase();
-    const types = {png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',avif:'image/avif'};
-    const image = Object.hasOwn(types, ext) && types[ext] === file.type;
-    const path = './attachments/' + crypto.randomUUID() + '.' + (image ? ext : 'bin');
-    const label = file.name.replace(/[\[\]()`*\r\n]/g, '_');
-    attachments.push({file, path, label, uploaded: false});
+    const extension = Object.hasOwn(imageExtensions, file.type) ? imageExtensions[file.type] : null;
+    const path = './attachments/' + crypto.randomUUID() + '.' + (extension || 'bin');
+    const label = (file.name || '스크린샷').replace(/[\[\]()`*\r\n]/g, '_');
+    const previewUrl = extension ? URL.createObjectURL(file) : null;
+    attachments.push({file, path, label, previewUrl, uploaded: false});
+    insertions.push((extension ? '!' : '') + '[' + label + '](' + path + ')');
+    includesImage ||= Boolean(extension);
+  }
+  if (insertions.length) {
     const textarea = edit.elements.body;
-    textarea.value += (textarea.value ? '\n\n' : '') + (image ? '!' : '') + '[' + label + '](' + path + ')';
+    const cursor = textarea.selectionEnd;
+    const before = textarea.value.slice(0, cursor);
+    const after = textarea.value.slice(cursor);
+    const separation = (text, boundary) => {
+      if (!text || text[boundary] !== '\n') return text ? '\n\n' : '';
+      return (boundary === 0 ? /^\n\n/.test(text) : /\n\n$/.test(text)) ? '' : '\n';
+    };
+    const prefix = separation(before, before.length - 1);
+    const suffix = separation(after, 0) || (after ? '' : '\n\n');
+    textarea.setRangeText(prefix + insertions.join('\n\n') + suffix, cursor, cursor, 'end');
+    textarea.focus();
   }
   $('#attachment-status').textContent = [
     attachments.length ? '첨부 ' + attachments.length + '개 · 발행할 때 업로드됩니다.' : '',
     skipped.length ? '5 MB 초과: ' + skipped.join(', ') : '',
   ].filter(Boolean).join(' ');
+  if (includesImage) $('#preview-details').open = true;
   updatePreview();
 }
 
@@ -426,7 +453,7 @@ edit.addEventListener('submit', (event) => {
     if (!post.title || !post.category || !post.body) throw new Error('제목, 카테고리와 본문을 입력해 주세요.');
     await uploadAttachments(post.body);
     await save([...posts.filter((entry) => entry.id !== post.id), post], (editing ? 'Edit: ' : 'Publish: ') + post.title);
-    attachments = [];
+    clearAttachments();
     location.hash = 'post/' + encodeURIComponent(post.id);
   });
 });
@@ -465,6 +492,15 @@ dropZone.addEventListener('drop', (event) => {
   event.preventDefault();
   delete dropZone.dataset.dragging;
   queueFiles(event.dataTransfer.files);
+});
+edit.elements.body.addEventListener('paste', (event) => {
+  const images = [...(event.clipboardData?.items || [])]
+    .filter((item) => item.kind === 'file' && Object.hasOwn(imageExtensions, item.type))
+    .map((item) => item.getAsFile())
+    .filter(Boolean);
+  if (!images.length) return;
+  event.preventDefault();
+  queueFiles(images);
 });
 edit.elements.body.addEventListener('input', updatePreview);
 $('#search').addEventListener('input', renderList);
