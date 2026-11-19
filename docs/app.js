@@ -9,6 +9,8 @@ let posts = [];
 let session;
 let version;
 let editing;
+let editorReturn = '#articles';
+let attachments = [];
 let selectedCategory = '';
 let loadError = '';
 let busy = false;
@@ -28,12 +30,17 @@ function inline(node, text) {
     } else if (/^\*\*[^*]+\*\*$/.test(part)) {
       node.append(element('strong', part.slice(2, -2)));
     } else {
-      const match = part.match(/^(!?)\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/i);
+      const match = part.match(/^(!?)\[([^\]]+)\]\((https?:\/\/[^\s)]+|\.\/attachments\/[a-f0-9-]+\.(?:png|jpg|jpeg|gif|webp|avif|bin))\)$/i);
       if (!match) {
         node.append(part);
       } else if (match[1]) {
         const image = element('img');
         image.alt = match[2];
+        const pending = attachments.find((item) => item.path === match[3]);
+        if (pending) {
+          node.append('첨부 이미지 · ' + pending.label);
+          continue;
+        }
         image.src = match[3];
         image.loading = 'lazy';
         image.referrerPolicy = 'no-referrer';
@@ -41,6 +48,7 @@ function inline(node, text) {
       } else {
         const link = element('a', match[2]);
         link.href = match[3];
+        if (match[3].startsWith('./attachments/')) link.download = match[2];
         node.append(link);
       }
     }
@@ -113,13 +121,17 @@ function renderList() {
     const button = element('button', category || '전체');
     button.setAttribute('aria-pressed', String(category === selectedCategory));
     button.addEventListener('click', () => {
-      selectedCategory = category;
-      renderList();
-      [...filters.children].find((child) => child.getAttribute('aria-pressed') === 'true')?.focus();
+      location.hash = category ? 'category/' + encodeURIComponent(category) : 'articles';
     });
     filters.append(button);
   }
 
+  $('#articles-title').textContent = selectedCategory || '아티클';
+  $('#category-options').replaceChildren(...categories.map((category) => {
+    const option = element('option');
+    option.value = category;
+    return option;
+  }));
   const query = $('#search').value.trim().toLowerCase();
   const matches = posts.filter((post) => (!selectedCategory || post.category === selectedCategory)
     && [post.title, post.category, post.summary, post.body, ...post.tags].join(' ').toLowerCase().includes(query));
@@ -141,16 +153,30 @@ function renderList() {
   }
 }
 
+function filtersFocus() {
+  $('#filters').querySelector('[aria-pressed=true]')?.focus({ preventScroll: true });
+}
+
 function route() {
   const hash = location.hash;
+  const isEditing = hash === '#write' && Boolean(session);
+  editor.hidden = !isEditing;
+  const category = posts.find((entry) => '#category/' + encodeURIComponent(entry.category) === hash)?.category || '';
+  if (category !== selectedCategory) {
+    selectedCategory = category;
+    renderList();
+    if (!isEditing) filtersFocus();
+  }
   const isPost = hash.startsWith('#post/');
   const post = posts.find((entry) => '#post/' + encodeURIComponent(entry.id) === hash);
-  $('#home').hidden = isPost;
+  $('#home').hidden = isPost || isEditing;
   const article = $('#article');
   article.hidden = !isPost;
-  document.title = post ? post.title + ' · SOLID Engineering' : 'SOLID Engineering';
+  document.title = isEditing ? $('#editor-title').textContent + ' · SOLID Engineering'
+    : post ? post.title + ' · SOLID Engineering' : 'SOLID Engineering';
   if (!isPost) {
-    if (hash === '#articles') $('#articles').scrollIntoView();
+    if (isEditing) return;
+    if (hash === '#articles' || category) $('#articles').scrollIntoView();
     return;
   }
   const back = element('a', '아티클 목록', 'back');
@@ -214,12 +240,12 @@ async function operation(form, task) {
   }
 }
 
-function apiEndpoint(repository) {
-  return 'https://api.github.com/repos/' + repository + '/contents/docs/posts.json';
+function apiEndpoint(repository, path) {
+  return 'https://api.github.com/repos/' + repository + '/contents/' + path;
 }
 
-async function github(config, method = 'GET', body) {
-  const url = new URL(apiEndpoint(config.repo));
+async function github(config, method = 'GET', body, path = 'docs/posts.json') {
+  const url = new URL(apiEndpoint(config.repo, path));
   if (method === 'GET') url.searchParams.set('ref', config.branch);
   const response = await fetch(url, {
     method,
@@ -242,7 +268,7 @@ async function github(config, method = 'GET', body) {
 }
 
 function encode(text) {
-  const bytes = new TextEncoder().encode(text);
+  const bytes = typeof text === 'string' ? new TextEncoder().encode(text) : text;
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
@@ -264,7 +290,14 @@ async function save(next, message) {
 }
 
 function openEditor(post) {
+  if (location.hash === '#write' && !editor.hidden) {
+    edit.elements.title.focus();
+    return;
+  }
+  editorReturn = location.hash && location.hash !== '#write' ? location.hash : '#articles';
   editing = post;
+  attachments = [];
+  $('#attachment-status').textContent = '';
   edit.reset();
   feedback(edit);
   $('#editor-title').textContent = post ? '글 수정' : '새 글';
@@ -273,8 +306,50 @@ function openEditor(post) {
     for (const field of ['title', 'category', 'summary', 'body']) edit.elements[field].value = post[field];
     edit.elements.tags.value = post.tags.join(', ');
   }
+  if (!post) edit.elements.category.value = selectedCategory;
   updatePreview();
-  editor.showModal();
+  location.hash = 'write';
+  route();
+  window.scrollTo(0, 0);
+  edit.elements.title.focus();
+}
+
+function queueFiles(files) {
+  if (busy) return;
+  const skipped = [];
+  for (const file of files) {
+    if (file.size > 5_000_000) {
+      skipped.push(file.name);
+      continue;
+    }
+    const ext = file.name.split('.').at(-1).toLowerCase();
+    const types = {png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',avif:'image/avif'};
+    const image = Object.hasOwn(types, ext) && types[ext] === file.type;
+    const path = './attachments/' + crypto.randomUUID() + '.' + (image ? ext : 'bin');
+    const label = file.name.replace(/[\[\]()`*\r\n]/g, '_');
+    attachments.push({file, path, label, uploaded: false});
+    const textarea = edit.elements.body;
+    textarea.value += (textarea.value ? '\n\n' : '') + (image ? '!' : '') + '[' + label + '](' + path + ')';
+  }
+  $('#attachment-status').textContent = [
+    attachments.length ? '첨부 ' + attachments.length + '개 · 발행할 때 업로드됩니다.' : '',
+    skipped.length ? '5 MB 초과: ' + skipped.join(', ') : '',
+  ].filter(Boolean).join(' ');
+  updatePreview();
+}
+
+async function uploadAttachments(body) {
+  for (const item of attachments) {
+    if (item.uploaded || !body.includes('](' + item.path + ')')) continue;
+    $('#attachment-status').textContent = '업로드 중 · ' + item.label;
+    await github(session, 'PUT', {
+      message: 'Upload blog attachment',
+      branch: session.branch,
+      content: encode(new Uint8Array(await item.file.arrayBuffer())),
+    }, 'docs/' + item.path.slice(2));
+    item.uploaded = true;
+  }
+  if (attachments.length) $('#attachment-status').textContent = '글 저장 중';
 }
 
 function updatePreview() {
@@ -294,6 +369,8 @@ manage.addEventListener('click', () => {
   }
 });
 disconnect.addEventListener('click', () => {
+  if (busy) return;
+  if (location.hash === '#write') location.hash = editorReturn;
   session = undefined;
   version = undefined;
   manage.textContent = '블로그 관리';
@@ -347,8 +424,9 @@ edit.addEventListener('submit', (event) => {
       updated: new Date().toISOString(),
     };
     if (!post.title || !post.category || !post.body) throw new Error('제목, 카테고리와 본문을 입력해 주세요.');
+    await uploadAttachments(post.body);
     await save([...posts.filter((entry) => entry.id !== post.id), post], (editing ? 'Edit: ' : 'Publish: ') + post.title);
-    editor.close();
+    attachments = [];
     location.hash = 'post/' + encodeURIComponent(post.id);
   });
 });
@@ -365,10 +443,29 @@ remove.addEventListener('submit', (event) => {
 for (const button of document.querySelectorAll('[data-close]')) {
   button.addEventListener('click', () => $('#' + button.dataset.close).close());
 }
-for (const dialog of [connection, editor, removal]) {
+for (const dialog of [connection, removal]) {
   dialog.addEventListener('cancel', (event) => { if (busy) event.preventDefault(); });
 }
 connection.addEventListener('close', () => { connect.elements.token.value = ''; });
+$('#cancel-edit').addEventListener('click', () => {
+  if (!busy) location.hash = editorReturn;
+});
+const attachmentInput = $('#attachment-file');
+attachmentInput.addEventListener('change', () => {
+  queueFiles(attachmentInput.files);
+  attachmentInput.value = '';
+});
+const dropZone = $('#drop-zone');
+dropZone.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  dropZone.dataset.dragging = 'true';
+});
+dropZone.addEventListener('dragleave', () => { delete dropZone.dataset.dragging; });
+dropZone.addEventListener('drop', (event) => {
+  event.preventDefault();
+  delete dropZone.dataset.dragging;
+  queueFiles(event.dataTransfer.files);
+});
 edit.elements.body.addEventListener('input', updatePreview);
 $('#search').addEventListener('input', renderList);
 window.addEventListener('hashchange', route);

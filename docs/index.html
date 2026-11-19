@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="SOLID 프로젝트의 기술 블로그">
   <title>SOLID Engineering</title>
-  <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.js"></script>
+  <link rel="stylesheet" href="./style.css?v=2">
+  <script type="module" src="./app.js?v=2"></script>
 </head>
 <body>
   <a class="skip" href="#main">본문으로 건너뛰기</a>
@@ -21,15 +21,38 @@
         <p>설계에서 구현까지, SOLID 팀의 개발 기록.</p>
         <div class="motif" aria-hidden="true"><i></i><i></i><i></i></div>
       </header>
+      <div class="board">
+      <aside class="sidebar" aria-labelledby="categories-title">
+        <h2 id="categories-title">카테고리</h2>
+        <div id="filters" class="filters"></div>
+      </aside>
       <section id="articles" aria-labelledby="articles-title">
         <div class="section-head"><div><p class="eyebrow">THE JOURNAL</p><h2 id="articles-title">아티클</h2></div>
           <label class="search"><span class="sr">글 검색</span><input id="search" type="search" placeholder="제목, 내용, 태그 검색"></label>
         </div>
-        <div id="filters" class="filters" aria-label="카테고리"></div>
         <div id="posts" aria-live="polite"><p>글을 불러오는 중입니다.</p></div>
       </section>
+      </div>
     </section>
     <article id="article" hidden></article>
+    <section id="editor" class="composer" aria-labelledby="editor-title" hidden>
+    <form id="edit" class="panel">
+      <header class="panel-head"><h2 id="editor-title">새 글</h2><button type="button" id="cancel-edit">취소</button></header>
+      <label>제목<input name="title" required maxlength="120" placeholder="글 제목을 입력하세요"></label>
+      <div class="fields"><label>카테고리<input name="category" list="category-options" required maxlength="30" placeholder="예: 개발기"></label><datalist id="category-options"></datalist>
+      <label>태그<input name="tags" maxlength="140" placeholder="쉼표로 구분"></label></div>
+      <label>요약<input name="summary" maxlength="200"></label>
+      <div class="attachments" id="drop-zone">
+        <label class="file-button">파일 첨부<input id="attachment-file" type="file" multiple></label>
+        <span>파일을 여기에 놓으세요 · 파일당 최대 5 MB</span>
+      </div>
+      <p id="attachment-status" class="attachment-status" role="status"></p>
+      <label>본문 · Markdown<textarea name="body" required rows="16" maxlength="50000" placeholder="## 제목"></textarea></label>
+      <details><summary>본문 미리보기</summary><div class="prose" id="preview"></div></details>
+      <p class="feedback" role="status"></p>
+      <button class="primary">발행</button>
+    </form>
+    </section>
   </main>
   <footer class="shell footer"><span>SOLID Engineering</span><span>프로젝트 개발 블로그</span></footer>
   <dialog id="connection">
@@ -41,19 +64,6 @@
       <label>GitHub 토큰<input name="token" type="password" autocomplete="off" required></label>
       <p class="feedback" role="status"></p>
       <button class="primary">연결</button>
-    </form>
-  </dialog>
-  <dialog id="editor">
-    <form id="edit" class="panel">
-      <header class="panel-head"><h2 id="editor-title">새 글</h2><button type="button" data-close="editor">닫기</button></header>
-      <label>제목<input name="title" required maxlength="120"></label>
-      <div class="fields"><label>카테고리<input name="category" required maxlength="30" placeholder="예: 개발기"></label>
-      <label>태그<input name="tags" maxlength="140" placeholder="쉼표로 구분"></label></div>
-      <label>요약<input name="summary" maxlength="200"></label>
-      <label>본문 · Markdown<textarea name="body" required rows="12" maxlength="50000" placeholder="## 제목"></textarea></label>
-      <details><summary>본문 미리보기</summary><div class="prose" id="preview"></div></details>
-      <p class="feedback" role="status"></p>
-      <button class="primary">발행</button>
     </form>
   </dialog>
   <dialog id="removal"><form id="remove" class="panel"><h2>글을 삭제할까요?</h2><p id="remove-title"></p><p class="feedback" role="status"></p><div class="actions"><button type="button" data-close="removal">취소</button><button class="danger">삭제</button></div></form></dialog>
