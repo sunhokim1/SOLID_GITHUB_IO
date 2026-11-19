@@ -20,3 +20,8 @@
 .attachment-status{margin:6px 0;font-size:.875rem;color:var(--muted)}
 [hidden]{display:none!important}
 @media(max-width:680px){.board{grid-template-columns:1fr;gap:20px}.sidebar .filters{display:flex;flex-wrap:wrap}.sidebar h2{margin-bottom:6px}.composer{margin:24px auto}}
+
+.sidebar .category-group{display:grid;gap:3px;margin:1px 2px 8px 14px;padding-left:8px;border-left:1px solid var(--line)}
+.sidebar .category-group button{padding-block:5px;color:var(--muted)}
+.sidebar .category-group button[aria-pressed=true]{color:#174c34}
+@media(max-width:680px){.sidebar .filters{display:grid;grid-template-columns:1fr}.sidebar .category-group{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}

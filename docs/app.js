@@ -108,28 +108,56 @@ function metadata(post) {
   return [post.category, dateLabel(post.created), ...post.tags.map((tag) => '#' + tag)].join(' · ');
 }
 
+const technologyTopics = [
+  { id: 'ftl-gc', label: 'FTL / GC', categories: ['FTL', 'Garbage Collection', 'GC', 'FTL / GC'] },
+  { id: 'host-linux', label: 'Host/Linux', categories: ['Host/Linux'] },
+  { id: 'nand', label: 'NAND 드라이버', categories: ['NAND 드라이버'] },
+];
+const technologyCategories = new Set(technologyTopics.flatMap((topic) => topic.categories));
+
+function categoryHash(category) {
+  return '#category/' + encodeURIComponent(category);
+}
+
 function renderList() {
   const filters = $('#filters');
   const categories = [...new Set(posts.map((post) => post.category))].sort((a, b) => a.localeCompare(b, 'ko'));
-  if (!categories.includes(selectedCategory)) selectedCategory = '';
-  filters.replaceChildren();
-  for (const category of ['', ...categories]) {
-    const button = element('button', category || '전체');
-    button.setAttribute('aria-pressed', String(category === selectedCategory));
-    button.addEventListener('click', () => {
-      location.hash = category ? 'category/' + encodeURIComponent(category) : 'articles';
-    });
-    filters.append(button);
+  const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
+  const category = categories.find((entry) => selectedCategory === categoryHash(entry));
+  const technology = selectedCategory === '#technology';
+  const heading = technology ? '사용 기술' : topic?.label || category || '아티클';
+  function categoryButton(label, hash) {
+    const button = element('button', label);
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(hash === (selectedCategory || '#articles')));
+    button.addEventListener('click', () => { location.hash = hash; });
+    return button;
   }
 
-  $('#articles-title').textContent = selectedCategory || '아티클';
-  $('#category-options').replaceChildren(...categories.map((category) => {
+  const group = element('div', '', 'category-group');
+  group.setAttribute('role', 'group');
+  group.setAttribute('aria-label', '사용 기술 하위 카테고리');
+  group.append(...technologyTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)));
+  const otherCategories = categories.filter((entry) => !technologyCategories.has(entry));
+  filters.replaceChildren(
+    categoryButton('전체', '#articles'),
+    categoryButton('사용 기술', '#technology'),
+    group,
+    ...otherCategories.map((entry) => categoryButton(entry, categoryHash(entry))),
+  );
+
+  $('#articles-title').textContent = heading;
+  const editable = new Set([...technologyTopics.map((entry) => entry.label), ...categories]);
+  $('#category-options').replaceChildren(...[...editable].map((entry) => {
     const option = element('option');
-    option.value = category;
+    option.value = entry;
     return option;
   }));
   const query = $('#search').value.trim().toLowerCase();
-  const matches = posts.filter((post) => (!selectedCategory || post.category === selectedCategory)
+  const matches = posts.filter((post) =>
+    (!technology || technologyCategories.has(post.category))
+    && (!topic || topic.categories.includes(post.category))
+    && (!category || post.category === category)
     && [post.title, post.category, post.summary, post.body, ...post.tags].join(' ').toLowerCase().includes(query));
   const list = $('#posts');
   list.replaceChildren();
@@ -157,7 +185,9 @@ function route() {
   const hash = location.hash;
   const isEditing = hash === '#write' && Boolean(session);
   editor.hidden = !isEditing;
-  const category = posts.find((entry) => '#category/' + encodeURIComponent(entry.category) === hash)?.category || '';
+  const topic = technologyTopics.find((entry) => '#topic/' + entry.id === hash);
+  const isCategory = posts.some((entry) => categoryHash(entry.category) === hash);
+  const category = hash === '#technology' || topic || isCategory ? hash : '';
   if (category !== selectedCategory) {
     selectedCategory = category;
     renderList();
@@ -302,7 +332,11 @@ function openEditor(post) {
     for (const field of ['title', 'category', 'summary', 'body']) edit.elements[field].value = post[field];
     edit.elements.tags.value = post.tags.join(', ');
   }
-  if (!post) edit.elements.category.value = selectedCategory;
+  if (!post) {
+    const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
+    const category = posts.find((entry) => selectedCategory === categoryHash(entry.category))?.category;
+    edit.elements.category.value = topic?.label || category || '';
+  }
   updatePreview();
   location.hash = 'write';
   route();
