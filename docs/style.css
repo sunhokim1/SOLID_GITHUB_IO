@@ -25,3 +25,25 @@
 .sidebar .category-group button{padding-block:5px;color:var(--muted)}
 .sidebar .category-group button[aria-pressed=true]{color:#174c34}
 @media(max-width:680px){.sidebar .filters{display:grid;grid-template-columns:1fr}.sidebar .category-group{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
+
+#article {
+  margin: 36px auto 50px;
+  padding: clamp(22px, 5vw, 48px);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 5px 20px #17211c08;
+}
+#article > .prose {
+  margin-top: 26px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+#article > .prose h2,
+#article > .prose h3 {
+  line-height: 1.35;
+  margin-top: 1.6em;
+}
+@media (max-width: 580px) {
+  #article { margin-top: 20px; }
+}
