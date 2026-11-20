@@ -108,6 +108,8 @@ function metadata(post) {
   return [post.category, dateLabel(post.created), ...post.tags.map((tag) => '#' + tag)].join(' · ');
 }
 
+const newCategoryChoice = '__new_category__';
+
 const technologyTopics = [
   { id: 'ftl-gc', label: 'FTL / GC', categories: ['FTL', 'Garbage Collection', 'GC', 'FTL / GC'] },
   { id: 'host-linux', label: 'Host/Linux', categories: ['Host/Linux'] },
@@ -155,12 +157,7 @@ function renderList() {
   );
 
   $('#articles-title').textContent = heading;
-  const editable = new Set([...technologyTopics.map((entry) => entry.label), ...categories]);
-  $('#category-options').replaceChildren(...[...editable].map((entry) => {
-    const option = element('option');
-    option.value = entry;
-    return option;
-  }));
+  updateCategoryOptions(categories);
   const query = $('#search').value.trim().toLowerCase();
   const matches = posts.filter((post) =>
     (!technology || technologyCategories.has(post.category))
@@ -183,6 +180,34 @@ function renderList() {
     if (post.summary) link.append(element('p', post.summary));
     list.append(link);
   }
+}
+
+function updateCategoryOptions(categories) {
+  const select = edit.elements.category;
+  const previous = select.value;
+  const placeholder = element('option', '카테고리를 선택하세요');
+  placeholder.value = '';
+  placeholder.defaultSelected = true;
+
+  const options = [...new Set([...technologyTopics.map((topic) => topic.label), ...categories])]
+    .map((category) => {
+      const option = element('option', category);
+      option.value = categoryHash(category);
+      return option;
+    });
+  const add = element('option', '+ 새 카테고리 추가');
+  add.value = newCategoryChoice;
+  select.replaceChildren(placeholder, ...options, add);
+  select.value = [placeholder, ...options, add].some((option) => option.value === previous) ? previous : '';
+  syncNewCategoryField();
+}
+
+function syncNewCategoryField() {
+  const adding = edit.elements.category.value === newCategoryChoice;
+  const input = edit.elements.newCategory;
+  $('#new-category-field').hidden = !adding;
+  input.disabled = !adding;
+  input.required = adding;
 }
 
 function filtersFocus() {
@@ -337,14 +362,14 @@ function openEditor(post) {
   $('#editor-title').textContent = post ? '글 수정' : '새 글';
   edit.querySelector('.primary').textContent = post ? '수정 저장' : '발행';
   if (post) {
-    for (const field of ['title', 'category', 'summary', 'body']) edit.elements[field].value = post[field];
+    for (const field of ['title', 'summary', 'body']) edit.elements[field].value = post[field];
     edit.elements.tags.value = post.tags.join(', ');
   }
-  if (!post) {
-    const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
-    const category = posts.find((entry) => selectedCategory === categoryHash(entry.category))?.category;
-    edit.elements.category.value = topic?.label || category || '';
-  }
+  const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
+  const category = post?.category || topic?.label ||
+    posts.find((entry) => selectedCategory === categoryHash(entry.category))?.category;
+  edit.elements.category.value = category ? categoryHash(category) : '';
+  syncNewCategoryField();
   updatePreview();
   location.hash = 'write';
   route();
@@ -485,7 +510,9 @@ edit.addEventListener('submit', (event) => {
     const post = {
       id: editing?.id || crypto.randomUUID(),
       title: values.title.trim(),
-      category: values.category.trim(),
+      category: values.category === newCategoryChoice
+        ? values.newCategory.trim()
+        : decodeURIComponent(values.category.slice('#category/'.length)),
       tags: [...new Set(values.tags.split(',').map((tag) => tag.trim()).filter(Boolean))],
       summary: values.summary.trim(),
       body: values.body.trim(),
@@ -516,6 +543,10 @@ for (const dialog of [connection, removal]) {
   dialog.addEventListener('cancel', (event) => { if (busy) event.preventDefault(); });
 }
 connection.addEventListener('close', () => { connect.elements.token.value = ''; });
+edit.elements.category.addEventListener('change', () => {
+  syncNewCategoryField();
+  if (!edit.elements.newCategory.disabled) edit.elements.newCategory.focus();
+});
 $('#cancel-edit').addEventListener('click', () => {
   if (!busy) location.hash = editorReturn;
 });

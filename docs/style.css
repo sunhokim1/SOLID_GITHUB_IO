@@ -71,3 +71,15 @@
 }
 .sidebar .category-menu[open] summary::after { transform: rotate(45deg); }
 .sidebar .category-menu summary:hover { background: #e4f1e8; color: #174c34; }
+
+.composer select {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  font: inherit;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%2352635a' stroke-width='1.5'/%3E%3C/svg%3E") right 12px center / 16px no-repeat;
+  appearance: none;
+}
+.composer select:focus-visible { outline: 2px solid #168156; outline-offset: 4px; }
