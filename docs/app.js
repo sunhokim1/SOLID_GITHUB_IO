@@ -161,10 +161,14 @@ function renderList() {
     categoryButton('Host/Linux', '#topic/host-linux'),
   ]);
   const otherCategories = categories.filter((entry) => !technologyCategories.has(entry));
+  const projectPlan = '프로젝트 계획';
   filters.replaceChildren(
     categoryButton('전체', '#articles'),
+    ...otherCategories.filter((entry) => entry === projectPlan)
+      .map((entry) => categoryButton(entry, categoryHash(entry))),
     menu,
-    ...otherCategories.map((entry) => categoryButton(entry, categoryHash(entry))),
+    ...otherCategories.filter((entry) => entry !== projectPlan)
+      .map((entry) => categoryButton(entry, categoryHash(entry))),
   );
 
   $('#articles-title').textContent = heading;
