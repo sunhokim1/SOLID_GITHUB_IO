@@ -9,9 +9,9 @@
       "STM32"
     ],
     "summary": "JPG 파일이 Jetson에서 STM32와 SPI NAND를 거쳐 저장되고 복원되기까지, SOLID의 설계 목표를 소개합니다.",
-    "body": "## 파일 한 장에서 시작하기\n\nSOLID는 작은 SSD의 동작을 직접 구현하고 관찰하는 프로젝트입니다. Jetson에서 JPG 파일을 읽고, STM32에 데이터를 전달해 SPI NAND에 저장합니다. 다시 읽은 페이지를 원래 파일로 조립하고 SHA-256 해시를 비교하면 저장 전후에 바이트가 같은지 확인할 수 있습니다.\n\n## 각 계층이 맡는 일\n\n- **Host/Linux**는 파일을 2 KiB 논리 페이지 단위로 나누고 읽은 데이터를 다시 조립합니다.\n- **FTL**은 호스트의 논리 페이지 번호(LPN)를 NAND의 물리 페이지 번호(PPN)로 변환합니다.\n- **Garbage Collection**은 블록에 남은 유효 데이터를 옮기고 블록을 지워 재사용 공간을 확보합니다.\n- **NAND 드라이버**는 SPI NAND의 읽기·기록·삭제 명령을 수행하고 오류 상태를 전달합니다.\n\n## 어디까지 정해졌나\n\n프로젝트 일정은 2026년 11월 16일부터 12월 16일까지입니다. 내보낸 작업 보드에는 보드 연결 구조와 NAND·FTL·GC 공통 헤더 합의가 완료로 표시되어 있습니다. Linux에서 기존 CDC/tty를 사용할지, 커스텀 커널 블록 장치까지 구현할지는 결정할 항목으로 남아 있습니다.\n\n[SOLID Mini SSD 소스 코드](https://github.com/clap-min99/SOLID_miniSSD)",
+    "body": "## 파일 한 장에서 시작하기\n\nSOLID는 작은 SSD의 동작을 직접 구현하고 관찰하는 프로젝트입니다. Jetson에서 JPG 파일을 읽고, STM32에 데이터를 전달해 SPI NAND에 저장합니다. 다시 읽은 페이지를 원래 파일로 조립하고 SHA-256 해시를 비교하면 저장 전후에 바이트가 같은지 확인할 수 있습니다.\n\n## 각 계층이 맡는 일\n\n- **Host/Linux**는 파일을 2 KiB 논리 페이지 단위로 나누고 읽은 데이터를 다시 조립합니다.\n- **FTL**은 호스트의 논리 페이지 번호(LPN)를 NAND의 물리 페이지 번호(PPN)로 변환합니다.\n- **Garbage Collection**은 블록에 남은 유효 데이터를 옮기고 블록을 지워 재사용 공간을 확보합니다.\n- **NAND 드라이버**는 SPI NAND의 읽기·기록·삭제 명령을 수행하고 오류 상태를 전달합니다.\n\n## 어디까지 정해졌나\n\n프로젝트 일정은 2026년 11월 16일부터 12월 16일까지입니다. 내보낸 작업 보드에는 보드 연결 구조와 NAND·FTL·GC 공통 헤더 합의가 완료로 표시되어 있습니다. Linux에서 기존 CDC/tty를 사용할지, 커스텀 커널 블록 장치까지 구현할지는 결정할 항목으로 남아 있습니다.\n\n[SOLID Mini SSD 소스 코드](https://github.com/clap-min99/SOLID_miniSSD)\n\n## 관련 개발 기록\n\n이후 설계에서는 직접 개발한 Linux 블록 드라이버와 ST-LINK VCP 사용자 공간 브리지를 조합하는 초기 경로를 제안했습니다. [시스템 아키텍처](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-system-architecture)에서 연결 구조, 2 KiB 규격과 보드 이미지를 확인할 수 있습니다.",
     "created": "2026-11-19T17:00:00+09:00",
-    "updated": "2026-11-19T17:00:00+09:00"
+    "updated": "2026-11-20T02:47:33.225Z"
   },
   {
     "id": "spi-nand-driver",
@@ -24,9 +24,9 @@
       "ECC"
     ],
     "summary": "칩 연결 확인에서 페이지 읽기·기록, 블록 삭제, 오류 처리까지 이어지는 검증 계획입니다.",
-    "body": "## 칩을 인식한 뒤 첫 페이지를 검증한다\n\n내보낸 작업 보드에는 SPI 설정과 JEDEC ID 읽기가 진행 중으로 기록되어 있습니다. 먼저 실제 칩의 ID를 확인한 뒤, Block Erase와 Page Program을 구현하고 같은 페이지를 다시 읽습니다. 읽어온 2 KiB 전체를 기록한 바이트와 비교하는 것이 첫 번째 데이터 검증 기준입니다.\n\n## 실패가 위 계층에 전달되도록 한다\n\nNAND가 Busy 상태일 때는 완료를 기다리고, 시간 한도를 넘겼거나 Program·Erase에 실패했을 때는 그 결과를 FTL로 전달할 계획입니다. ECC 상태를 확인하고 불량 블록은 할당 대상에서 제외합니다.\n\n## 같은 인터페이스로 Mock과 실물을 다룬다\n\nFTL은 공통 NAND API를 사용합니다. PC의 Mock은 읽기·기록·삭제 제약과 오류를 모사하고, 실제 백엔드는 SPI NAND에 명령을 내립니다. 두 백엔드를 같은 인터페이스로 연결하는 작업과 실물 오류 시나리오 검증은 계획 단계입니다.",
+    "body": "## 칩을 인식한 뒤 첫 페이지를 검증한다\n\n내보낸 작업 보드에는 SPI 설정과 JEDEC ID 읽기가 진행 중으로 기록되어 있습니다. 먼저 실제 칩의 ID를 확인한 뒤, Block Erase와 Page Program을 구현하고 같은 페이지를 다시 읽습니다. 읽어온 2 KiB 전체를 기록한 바이트와 비교하는 것이 첫 번째 데이터 검증 기준입니다.\n\n## 실패가 위 계층에 전달되도록 한다\n\nNAND가 Busy 상태일 때는 완료를 기다리고, 시간 한도를 넘겼거나 Program·Erase에 실패했을 때는 그 결과를 FTL로 전달할 계획입니다. ECC 상태를 확인하고 불량 블록은 할당 대상에서 제외합니다.\n\n## 같은 인터페이스로 Mock과 실물을 다룬다\n\nFTL은 공통 NAND API를 사용합니다. PC의 Mock은 읽기·기록·삭제 제약과 오류를 모사하고, 실제 백엔드는 SPI NAND에 명령을 내립니다. 두 백엔드를 같은 인터페이스로 연결하는 작업과 실물 오류 시나리오 검증은 계획 단계입니다.\n\n## 관련 개발 기록\n\n11월 18일 작업일지에는 실제 칩의 `EF AA 21` 응답과 Erase, 2 KiB Program·Read-back 통과가 기록되었습니다. [SPI1 설정과 단품 검증](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-nand-spi-bringup)에 설정 자료와 콘솔 화면을 모았습니다.",
     "created": "2026-11-19T17:00:00+09:00",
-    "updated": "2026-11-19T17:00:00+09:00"
+    "updated": "2026-11-20T02:47:33.225Z"
   },
   {
     "id": "ftl-out-of-place-update",
@@ -39,9 +39,9 @@
       "TRIM"
     ],
     "summary": "논리 주소와 물리 주소를 분리하고 덮어쓰기와 논리 삭제를 처리하는 FTL 설계입니다.",
-    "body": "## LPN에서 최신 PPN 찾기\n\n호스트는 논리 페이지 번호(LPN)로 데이터를 요청합니다. FTL은 매핑 테이블에서 해당 LPN의 물리 페이지 번호(PPN)를 찾아 NAND에서 읽습니다. 설계 단계에서 미할당 상태의 표현과 매핑 테이블의 SRAM 사용량도 확인합니다.\n\n## 덮어쓰기의 저장 순서\n\n1. 빈 물리 페이지를 할당하고 새 데이터를 기록합니다.\n2. 기록이 성공하면 LPN이 새 PPN을 가리키도록 매핑을 바꿉니다.\n3. 이전 PPN을 무효로 표시하고 유효 페이지 개수를 갱신합니다.\n\n검증에서는 같은 LPN을 덮어썼을 때 PPN이 바뀌고, 다시 읽었을 때 최신 사진의 데이터가 반환되는지 확인할 계획입니다.\n\n## TRIM과 GC를 연결한다\n\nTRIM은 해당 LPN의 매핑을 해제합니다. 물리 블록을 지우는 작업은 유효 데이터를 보존하며 공간을 회수하는 GC에서 처리합니다. GC가 페이지를 옮기면 FTL은 그 LPN이 가리키는 PPN을 갱신해야 합니다.",
+    "body": "## LPN에서 최신 PPN 찾기\n\n호스트는 논리 페이지 번호(LPN)로 데이터를 요청합니다. FTL은 매핑 테이블에서 해당 LPN의 물리 페이지 번호(PPN)를 찾아 NAND에서 읽습니다. 설계 단계에서 미할당 상태의 표현과 매핑 테이블의 SRAM 사용량도 확인합니다.\n\n## 덮어쓰기의 저장 순서\n\n1. 빈 물리 페이지를 할당하고 새 데이터를 기록합니다.\n2. 기록이 성공하면 LPN이 새 PPN을 가리키도록 매핑을 바꿉니다.\n3. 이전 PPN을 무효로 표시하고 유효 페이지 개수를 갱신합니다.\n\n검증에서는 같은 LPN을 덮어썼을 때 PPN이 바뀌고, 다시 읽었을 때 최신 사진의 데이터가 반환되는지 확인할 계획입니다.\n\n## TRIM과 GC를 연결한다\n\nTRIM은 해당 LPN의 매핑을 해제합니다. 물리 블록을 지우는 작업은 유효 데이터를 보존하며 공간을 회수하는 GC에서 처리합니다. GC가 페이지를 옮기면 FTL은 그 LPN이 가리키는 PPN을 갱신해야 합니다.\n\n## 관련 개발 기록\n\n11월 19일 일지에는 Address Mapper와 L2P의 PC 단위 테스트 통과가 기록돼 있습니다. [FTL 공통 계약](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-ftl-address-contract)에 SRAM 계산과 경계 테스트를 정리했습니다.",
     "created": "2026-11-19T17:00:00+09:00",
-    "updated": "2026-11-19T17:00:00+09:00"
+    "updated": "2026-11-20T02:47:33.225Z"
   },
   {
     "id": "gc-victim-and-waf",
@@ -53,9 +53,9 @@
       "WAF"
     ],
     "summary": "유효 페이지를 보존하면서 블록을 회수하고, 반복 쓰기로 정합성과 비용을 확인하는 계획입니다.",
-    "body": "## 블록을 지우기 전에 지켜야 할 순서\n\nGC는 블록별 유효·무효·빈 페이지 상태를 집계해 회수할 블록을 고릅니다. 선택된 블록에서 아직 유효한 페이지를 새 위치에 복사하고, FTL 매핑을 갱신한 뒤 원래 블록을 지웁니다. 후보 블록을 고르는 정책과 자동 GC 발동 임계값은 작업 보드의 구현 과제입니다.\n\n## 반복 쓰기로 확인할 것\n\n- 반복·랜덤 쓰기 중 GC가 실행돼도 모든 LPN에서 최신 데이터가 읽히는지 비교합니다.\n- 제한된 저장 영역에서 같은 사진을 여러 번 덮어쓴 뒤 복원 파일의 해시를 대조합니다.\n- 호스트 쓰기 대비 실제 NAND Program 수를 집계해 쓰기 증폭(WAF)을 보고, GC 횟수·Erase 통계·지연시간도 기록합니다.\n\n내보낸 보드에는 이 테스트들이 미실행으로 표시되어 있습니다.",
+    "body": "## 블록을 지우기 전에 지켜야 할 순서\n\nGC는 블록별 유효·무효·빈 페이지 상태를 집계해 회수할 블록을 고릅니다. 선택된 블록에서 아직 유효한 페이지를 새 위치에 복사하고, FTL 매핑을 갱신한 뒤 원래 블록을 지웁니다. 후보 블록을 고르는 정책과 자동 GC 발동 임계값은 작업 보드의 구현 과제입니다.\n\n## 반복 쓰기로 확인할 것\n\n- 반복·랜덤 쓰기 중 GC가 실행돼도 모든 LPN에서 최신 데이터가 읽히는지 비교합니다.\n- 제한된 저장 영역에서 같은 사진을 여러 번 덮어쓴 뒤 복원 파일의 해시를 대조합니다.\n- 호스트 쓰기 대비 실제 NAND Program 수를 집계해 쓰기 증폭(WAF)을 보고, GC 횟수·Erase 통계·지연시간도 기록합니다.\n\n내보낸 보드에는 이 테스트들이 미실행으로 표시되어 있습니다.\n\n## 관련 개발 기록\n\n11월 19일 일지에는 Mock NAND와 GC 후보 선정의 단위 테스트 통과가 기록돼 있습니다. [Mock NAND와 GC 후보 선택](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-gc-mock-victim)에서 확인할 수 있습니다. 본문에서 설명한 반복 쓰기 통합 시험과 WAF 계측은 후속 범위입니다.",
     "created": "2026-11-19T17:00:00+09:00",
-    "updated": "2026-11-19T17:00:00+09:00"
+    "updated": "2026-11-20T02:47:33.225Z"
   },
   {
     "id": "host-jpg-roundtrip",
@@ -68,9 +68,9 @@
       "통합 테스트"
     ],
     "summary": "Jetson에서 파일을 나누고 STM32에 전송한 뒤 NAND에서 다시 읽는 통합 시나리오입니다.",
-    "body": "## USB 통신에서 파일 저장까지\n\n먼저 Jetson과 STM32가 PING 요청에 반복해서 응답하는지 확인합니다. 이어 WRITE·READ·TRIM·통계 명령과 바이너리 프레임의 길이, 순서, ACK, CRC, Timeout 규칙을 합의하는 것이 계획입니다.\n\n저장할 JPG의 원본 바이트를 2 KiB 논리 페이지 단위로 나누어 전송하고, STM32는 FTL을 거쳐 NAND에 기록합니다. 복원 시에는 읽어온 페이지를 원본 순서대로 조립하고, 기록한 파일 크기에 맞춰 원본 파일의 바이트 길이를 복원합니다.\n\n## 통합 테스트의 통과 기준\n\n복원한 JPG를 표시하고 원본 파일과 SHA-256을 비교합니다. 사진을 교체한 뒤에는 최신 버전이 복원되는지, 논리 삭제 뒤에는 해당 페이지가 미할당 상태로 처리되는지 확인할 계획입니다. 내보낸 보드에는 통합 테스트 결과가 아직 기록되어 있지 않습니다.",
+    "body": "## USB 통신에서 파일 저장까지\n\n먼저 Jetson과 STM32가 PING 요청에 반복해서 응답하는지 확인합니다. 이어 WRITE·READ·TRIM·통계 명령과 바이너리 프레임의 길이, 순서, ACK, CRC, Timeout 규칙을 합의하는 것이 계획입니다.\n\n저장할 JPG의 원본 바이트를 2 KiB 논리 페이지 단위로 나누어 전송하고, STM32는 FTL을 거쳐 NAND에 기록합니다. 복원 시에는 읽어온 페이지를 원본 순서대로 조립하고, 기록한 파일 크기에 맞춰 원본 파일의 바이트 길이를 복원합니다.\n\n## 통합 테스트의 통과 기준\n\n복원한 JPG를 표시하고 원본 파일과 SHA-256을 비교합니다. 사진을 교체한 뒤에는 최신 버전이 복원되는지, 논리 삭제 뒤에는 해당 페이지가 미할당 상태로 처리되는지 확인할 계획입니다. 내보낸 보드에는 통합 테스트 결과가 아직 기록되어 있지 않습니다.\n\n## 관련 개발 기록\n\n11월 19일 작업일지에는 RAM 블록 장치와 분할 요청 로그를 확인한 내용이 있습니다. [Linux 블록 요청 분할](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-host-protocol)에 초기 연결과 명령 설계를 정리했습니다.",
     "created": "2026-11-19T17:00:00+09:00",
-    "updated": "2026-11-19T17:00:00+09:00"
+    "updated": "2026-11-20T02:47:33.225Z"
   },
   {
     "id": "solid-2026-11-16-kickoff",
@@ -81,9 +81,9 @@
       "멘토링"
     ],
     "summary": "프로젝트 첫날 대면 멘토링에서 프로젝트 범위와 이후 일정을 논의했습니다.",
-    "body": "## 첫 대면 멘토링\n\n2026년 11월 16일, SOLID 팀은 대면 멘토링을 진행하며 프로젝트를 정리하고 이후 일정을 논의했습니다. 프로젝트 기간은 11월 16일에서 12월 16일까지로 기록되어 있습니다.\n\n## 초반 작업 보드의 계획\n\n초반에는 Jetson·STM32·SPI NAND의 연결 구조를 정하고, 호스트 기본 통신과 공통 API 헤더, Mock NAND 환경을 준비하는 작업이 잡혀 있습니다. 이후에는 페이지 단위 저장과 읽기를 연결하고, 사진 복원과 GC를 통합 검증하는 계획입니다.",
+    "body": "## 첫 대면 멘토링\n\n2026년 11월 16일, SOLID 팀은 대면 멘토링을 진행하며 프로젝트를 정리하고 이후 일정을 논의했습니다. 프로젝트 기간은 11월 16일에서 12월 16일까지로 기록되어 있습니다.\n\n## 초반 작업 보드의 계획\n\n초반에는 Jetson·STM32·SPI NAND의 연결 구조를 정하고, 호스트 기본 통신과 공통 API 헤더, Mock NAND 환경을 준비하는 작업이 잡혀 있습니다. 이후에는 페이지 단위 저장과 읽기를 연결하고, 사진 복원과 GC를 통합 검증하는 계획입니다.\n\n## 관련 개발 기록\n\n멘토링에서는 SPI CLK·MOSI·MISO를 공유하고 NAND별로 CS를 두는 구성을 논의했습니다. 먼저 NAND 한 개를 확인하고 최대 여덟 개로 확장하는 것이 목표였습니다. 전압 호환성, 페이지 경계, 주소 범위도 확인 항목으로 잡았습니다. [후속 개발일지](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-first-week-log)",
     "created": "2026-11-16T12:00:00+09:00",
-    "updated": "2026-11-19T17:00:00+09:00"
+    "updated": "2026-11-20T02:47:33.225Z"
   },
   {
     "id": "solid-project-plan",
@@ -98,7 +98,140 @@
     ],
     "summary": "Jetson Linux, STM32, SPI NAND를 연결해 SSD 컨트롤러를 구현하는 SOLID 팀의 목표, 역할 분담과 검증 계획입니다.",
     "created": "2026-11-20T02:28:16.992Z",
-    "updated": "2026-11-20T02:28:16.992Z",
-    "body": "## 프로젝트 배경\n\n갱신이 잦은 데이터가 계속 쌓이면 SSD는 유효 데이터를 옮기고 빈 블록을 회수해야 합니다. 이 과정에서 실제 NAND 쓰기량이 늘고 I/O 응답이 늦어질 수 있습니다. SOLID 팀은 Jetson Linux, STM32, SPI NAND Flash를 연결한 Mini SSD 컨트롤러를 구현해, 주소 매핑과 공간 회수가 데이터 정합성·지연시간·쓰기 증폭에 어떤 영향을 주는지 확인합니다.\n\n## 목표와 구현 범위\n\n- **Host/Linux** · Jetson과 STM32를 USB로 연결하고, NAND 기반 저장 장치를 Linux 블록 장치로 등록해 읽기·쓰기 요청을 처리합니다.\n- **SPI NAND 드라이버** · 페이지 읽기와 기록, 블록 삭제를 구현하고 상태와 오류를 상위 계층에 전달합니다.\n- **FTL** · 논리 페이지 번호(LPN)를 물리 페이지 번호(PPN)에 매핑합니다. 같은 논리 주소에 새 데이터를 쓰면 빈 물리 페이지를 할당하고 매핑을 갱신합니다.\n- **Garbage Collection** · 회수할 블록을 선정하고 유효 페이지를 이동한 뒤 블록을 재사용합니다.\n\n## 팀 구성과 역할\n\n- **김선호** · Jetson Linux 커널 드라이버와 USB 통신\n- **도재우** · STM32 기반 SPI NAND 드라이버와 Read/Program/Erase\n- **박수민** · FTL 주소 매핑, 페이지 할당과 데이터 갱신\n- **이규현** · Garbage Collection과 데이터 정합성 검증\n\n## 개발 환경과 일정\n\n하드웨어는 Jetson, STM32, SPI NAND Flash를 사용합니다. 소프트웨어는 C/C++, Embedded Linux, Linux Kernel Driver를 중심으로 개발합니다. Git으로 변경을 관리하고 Mock NAND, CLI 및 자동화 테스트로 동작을 확인합니다.\n\n계획서의 주차표는 W+1부터 W+6까지이며, NAND 드라이버, FTL, GC, Linux 드라이버 개발과 통합·성능 검증 및 발표를 다룹니다.\n\n## 검증할 항목과 결과물\n\n1. NAND 페이지를 기록한 뒤 다시 읽어 원본 데이터와 비교합니다.\n2. 같은 논리 주소에 반복해서 쓴 뒤 최신 데이터가 반환되는지 확인합니다.\n3. GC 실행 전후에 유효 데이터와 주소 매핑이 유지되는지 확인합니다.\n4. 호스트 쓰기량과 NAND 쓰기량을 비교해 쓰기 증폭(WAF)을 분석하고, I/O 지연과 동작 로그를 기록합니다.\n\n위 내용은 구현 목표와 검증 계획입니다. 예정 결과물은 데이터 정합성 테스트, 동작 로그, 성능 및 WAF 분석 자료입니다.\n\n[SOLID Mini SSD 소스 코드](https://github.com/clap-min99/SOLID_miniSSD)"
+    "updated": "2026-11-20T02:47:33.225Z",
+    "body": "## 프로젝트 배경\n\n갱신이 잦은 데이터가 계속 쌓이면 SSD는 유효 데이터를 옮기고 빈 블록을 회수해야 합니다. 이 과정에서 실제 NAND 쓰기량이 늘고 I/O 응답이 늦어질 수 있습니다. SOLID 팀은 Jetson Linux, STM32, SPI NAND Flash를 연결한 Mini SSD 컨트롤러를 구현해, 주소 매핑과 공간 회수가 데이터 정합성·지연시간·쓰기 증폭에 어떤 영향을 주는지 확인합니다.\n\n## 목표와 구현 범위\n\n- **Host/Linux** · Jetson과 STM32를 USB로 연결하고, NAND 기반 저장 장치를 Linux 블록 장치로 등록해 읽기·쓰기 요청을 처리합니다.\n- **SPI NAND 드라이버** · 페이지 읽기와 기록, 블록 삭제를 구현하고 상태와 오류를 상위 계층에 전달합니다.\n- **FTL** · 논리 페이지 번호(LPN)를 물리 페이지 번호(PPN)에 매핑합니다. 같은 논리 주소에 새 데이터를 쓰면 빈 물리 페이지를 할당하고 매핑을 갱신합니다.\n- **Garbage Collection** · 회수할 블록을 선정하고 유효 페이지를 이동한 뒤 블록을 재사용합니다.\n\n## 팀 구성과 역할\n\n- **김선호** · Jetson Linux 커널 드라이버와 USB 통신\n- **도재우** · STM32 기반 SPI NAND 드라이버와 Read/Program/Erase\n- **박수민** · FTL 주소 매핑, 페이지 할당과 데이터 갱신\n- **이규현** · Garbage Collection과 데이터 정합성 검증\n\n## 개발 환경과 일정\n\n하드웨어는 Jetson, STM32, SPI NAND Flash를 사용합니다. 소프트웨어는 C/C++, Embedded Linux, Linux Kernel Driver를 중심으로 개발합니다. Git으로 변경을 관리하고 Mock NAND, CLI 및 자동화 테스트로 동작을 확인합니다.\n\n계획서의 주차표는 W+1부터 W+6까지이며, NAND 드라이버, FTL, GC, Linux 드라이버 개발과 통합·성능 검증 및 발표를 다룹니다.\n\n## 검증할 항목과 결과물\n\n1. NAND 페이지를 기록한 뒤 다시 읽어 원본 데이터와 비교합니다.\n2. 같은 논리 주소에 반복해서 쓴 뒤 최신 데이터가 반환되는지 확인합니다.\n3. GC 실행 전후에 유효 데이터와 주소 매핑이 유지되는지 확인합니다.\n4. 호스트 쓰기량과 NAND 쓰기량을 비교해 쓰기 증폭(WAF)을 분석하고, I/O 지연과 동작 로그를 기록합니다.\n\n위 내용은 구현 목표와 검증 계획입니다. 예정 결과물은 데이터 정합성 테스트, 동작 로그, 성능 및 WAF 분석 자료입니다.\n\n[SOLID Mini SSD 소스 코드](https://github.com/clap-min99/SOLID_miniSSD)\n\n## 관련 개발 기록\n\n계획서 이후의 설계 선택과 모듈별 진행 기록은 [시스템 아키텍처](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-system-architecture)와 [11월 17–19일 개발일지](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-first-week-log)에 정리했습니다."
+  },
+  {
+    "id": "solid-system-architecture",
+    "title": "Jetson에서 SPI NAND까지 · SOLID 시스템 아키텍처",
+    "category": "프로젝트 소개",
+    "tags": [
+      "아키텍처",
+      "Jetson",
+      "STM32",
+      "SPI NAND"
+    ],
+    "summary": "2 KiB 블록 요청이 Linux 드라이버, VCP 브리지, STM32의 FTL을 거쳐 NAND에 도달하는 설계입니다.",
+    "body": "## 요청이 지나가는 경로\n\nJetson에서 목표 블록 장치인 `/dev/solid0`이 I/O 요청을 받습니다. 초기 설계는 사용자 공간 브리지와 ST-LINK VCP를 통해 STM32 USART2로 요청을 전달합니다. STM32의 Host Interface Layer가 명령을 해석하고 FTL을 호출하며, NAND 드라이버가 SPI 연산을 수행합니다. Native USB Bulk는 추후 확장 후보입니다.\n\n## 데이터 단위와 초기 용량\n\n- Host LBA와 FTL LPN은 2 KiB 단위입니다. NAND 페이지는 데이터 2,048 B와 Spare 64 B로 구성됩니다.\n- 초기 논리 용량은 16 MiB이며 물리 관리 영역은 24 MiB입니다. NAND 8개에서 칩당 24블록씩 관리하는 구성입니다.\n- 초기 READ/WRITE는 2 KiB 블록 하나씩 처리하며, STM32는 2 KiB 페이지 버퍼 하나를 재사용하는 방향입니다.\n\n## 보드 연결과 회로\n\n작업 보드 SYS-01에 기록된 연결 사진과 회로도입니다.\n\n### STM32와 SPI NAND\n\n![STM32와 SPI NAND 연결 사진](./attachments/a35fe81f387b5c2865fcd51fb8cb9314.jpg)\n\n### Jetson과 STM32\n\n![Jetson과 STM32 연결 사진](./attachments/9b40b71fd0b14536e68e85b1363657c1.jpg)\n\n### 연결 회로도\n\n![SOLID 하드웨어 연결 회로도](./attachments/1424494df0b2ffeb31c0708e6a8496f7.png)\n\n보드 연결 구조는 작업 보드에서 완료로 기록됐습니다. 파일시스템 마운트, VCP 왕복, 실제 NAND까지 연결한 데이터 검증은 별도의 통합 기준입니다.\n\n[Host 요청 분할과 UART 프로토콜](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-host-protocol) · [FTL 주소 매핑과 SRAM 예산](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-ftl-address-contract)",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-host-protocol",
+    "title": "Linux 블록 요청을 2 KiB UART 명령으로 나누기",
+    "category": "Host/Linux",
+    "tags": [
+      "VCP",
+      "UART",
+      "LBA",
+      "HIL"
+    ],
+    "summary": "파일시스템 요청을 분할하고 STM32의 처리 완료를 기다리는 Host 경로를 정리했습니다.",
+    "body": "## Linux 블록 장치에서 STM32까지\n\nJetson의 커널 블록 드라이버가 받은 요청을 사용자 공간 브리지가 ST-LINK VCP로 전달하는 설계입니다. STM32 HIL은 응답 상태를 반환합니다. 초기에는 한 요청의 완료 응답을 받은 뒤 다음 요청을 보냅니다.\n\n![Linux에서 NAND까지의 전체 흐름](./attachments/b5dc33ca4b0beb15c267ec7150277ef8.jpg)\n\n그림은 작업일지에 수록된 데이터 흐름 초안입니다. 아래 상세 그림의 USB Bulk 표기는 확장 경로를 설명하며, 초기 연결은 VCP를 사용합니다.\n\n## 정렬과 분할\n\n아키텍처 원안에서 Linux의 내부 섹터 단위는 512 B이고, 장치의 논리 블록과 FTL 페이지는 2 KiB입니다. 데이터 요청 시작 섹터는 4의 배수, 전송 길이는 2 KiB의 배수로 확인합니다. 여러 논리 블록을 포함한 요청은 2 KiB씩 나눕니다. 분할 요청에서 일부만 성공했을 때의 보고 방식은 추가로 확정할 항목입니다.\n\n![Linux 블록 요청이 STM32로 전달되는 상세 흐름](./attachments/1810d62cec242f0c4a3ea4d225c82d35.jpg)\n\n## 명령과 검증 범위\n\n최소 명령 후보는 `GET_INFO`, `READ`, `WRITE`, `FLUSH`입니다. 요청 ID로 응답을 연결하고, 상태 코드로 수신 여부와 저장장치 연산 결과를 구분하는 방향입니다. 프레임 세부 형식, 타임아웃과 재시도, `FLUSH` 이후의 영속성 보장은 협의가 남았습니다.\n\n11월 19일 작업일지에는 커널 모듈·RAM 블록 장치·파일시스템 로그와 분할 요청 로그를 확인했다고 기록되어 있습니다. 실제 VCP와 NAND를 연결한 종단 간 검증은 별도 단계입니다.",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-ftl-address-contract",
+    "title": "FTL 공통 계약 · 16 MiB를 관리하는 PPN과 L2P",
+    "category": "FTL / GC",
+    "tags": [
+      "FTL",
+      "L2P",
+      "SRAM",
+      "PPN"
+    ],
+    "summary": "FTL의 관리 영역과 실제 NAND 주소를 분리하고, 16 KiB L2P 테이블의 경계를 검증한 기록입니다.",
+    "body": "## 왜 NAND 전체를 바로 매핑하지 않았나\n\n2 KiB 페이지가 65,536개인 NAND 한 개를 4 B 엔트리로 매핑하면 테이블만 256 KiB가 필요합니다. NUCLEO-F411RE의 128 KiB SRAM에는 통신 버퍼, 스택과 GC 정보도 들어갑니다. 초기 구현은 논리 16 MiB, 물리 관리 24 MiB로 범위를 제한했습니다. 16 MiB에는 LPN 8,192개가 필요하며 `uint16_t` L2P 테이블의 크기는 16 KiB입니다. 필요할 때 매핑을 NAND에서 읽어 캐시에 두는 DFTL은 확장 대안입니다.\n\n## 고정 슬롯과 실제 할당 범위\n\nAddress Mapper는 칩별로 PPN 슬롯 4,096개를 예약하고 초기에는 각 칩의 앞 1,536개(24블록)만 할당에 사용합니다. 따라서 활성 PPN은 총 12,288개이며, 중간에 예약 슬롯이 있습니다. `ppn_is_valid()`와 `ppn_is_active()`를 구분해 주소 변환 가능 여부와 할당 가능 여부를 따로 검사합니다.\n\nBad Block이 생겨도 PPN과 실제 주소의 대응은 유지합니다. 할당기와 GC에서 해당 블록을 건너뜁니다. `0xFFFF`는 미매핑 값이므로 L2P를 0으로 초기화하면 실제 PPN 0을 가리키는 버그가 생깁니다.\n\n## 11월 19일 테스트 기록\n\n작업일지에 따르면 Address Mapper와 L2P를 구현하고 PC 단위 테스트를 실행했습니다. 예약 슬롯 32,768개의 왕복 변환, 활성 경계 1535/1536, 미매핑 초기값, 잘못된 `set`이 기존 값을 보존하는지 확인했습니다.\n\n![FTL Address Mapper와 L2P 단위 테스트 통과 로그](./attachments/4adcf8f92b81d3c6d8c0e8fae80e457c.png)\n\n다음 작업은 페이지 할당기, READ/WRITE 및 GC 연동입니다. 관리 영역 시작 블록, Spare 메타데이터와 재부팅 복구 규칙은 별도 합의가 필요합니다.",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-nand-api-contract",
+    "title": "FTL과 NAND 드라이버 사이의 공통 API",
+    "category": "NAND 드라이버",
+    "tags": [
+      "nand.h",
+      "API",
+      "ECC",
+      "Mock NAND"
+    ],
+    "summary": "상위 계층의 PPN을 칩·블록·페이지 주소로 변환하고, 실물과 Mock이 공유하는 API 경계를 정리했습니다.",
+    "body": "## 각 모듈의 책임\n\nFTL은 LPN→PPN을 관리하고 Address Mapper로 `chip / block / page`를 계산합니다. NAND 드라이버는 그 주소로 읽기·기록·삭제를 수행합니다. GC는 FTL을 통해 상태와 매핑을 조회하며 자체 정책으로 데이터를 직접 재매핑하지 않습니다.\n\n## 헤더 계약의 초안\n\n- `nand_init()`과 `nand_probe()`는 초기화와 장치 확인을 담당합니다.\n- `nand_get_geometry()`는 데이터·Spare 크기와 블록·페이지 기하 정보를 반환합니다.\n- `nand_read_page()`, `nand_program_page()`, `nand_erase_block()`은 물리 주소를 사용합니다.\n- `nand_is_factory_bad_block()`과 `nand_get_status()`는 불량 블록 및 상태를 확인하는 후보입니다.\n\n실패는 타임아웃, 쓰기 보호, Program/Erase 실패, 정정 불가능 ECC처럼 호출자가 구분할 수 있어야 합니다. NAND 헤더 문서의 함수명과 오류 코드는 초안입니다. Spare 접근, 불량 블록 정보의 영속화와 타임아웃 값은 보류 항목입니다.",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-nand-board-reference",
+    "title": "Flash 5 Click와 W25N01GV · 보드와 NAND 신호 읽기",
+    "category": "NAND 드라이버",
+    "tags": [
+      "W25N01GV",
+      "Flash 5 Click",
+      "데이터시트"
+    ],
+    "summary": "보드 구성, NAND 용량, SPI 신호와 WP/HOLD 설정을 이미지와 함께 정리했습니다.",
+    "body": "## Flash 5 Click 모듈\n\nMIKROE-3780에는 Winbond W25N01GV 계열 Serial SLC NAND가 장착됩니다. 프로젝트는 3.3 V 전원과 표준 SPI 구성을 사용합니다.\n\n![Flash 5 Click 보드 자료](./attachments/cadba88a743ad24713498597eb40fa53.jpg)\n\n## 페이지와 블록\n\n칩 하나는 1,024블록, 블록 하나는 64페이지입니다. 데이터 영역 기준 페이지는 2,048 B, 블록은 128 KiB, 전체는 128 MiB입니다. 페이지당 64 B Spare가 따로 있습니다.\n\n![페이지와 블록 용량 자료](./attachments/fc9c6e84c3ab863603609c68f3e25a2a.jpg)\n\n![SPI 클록 사양 발췌](./attachments/3208a651f32a7bba2297b7a977208ca3.png)\n\n104 MHz는 모듈 자료의 지원 상한입니다. 팀의 초기 단품 시험은 약 3.1 MHz로 진행됐습니다.\n\n## 신호와 보호 핀\n\n표준 SPI에서 CLK, CS, DI와 DO를 씁니다. 데이터시트는 상승 에지의 입력과 하강 에지의 출력 동작을 설명합니다. 초기 배선에서는 `/WP`와 `/HOLD`를 HIGH로 유지합니다. WP 핀과 보호 레지스터 비트는 함께 해석해야 합니다.\n\n![CLK·CS·DI·DO 신호 설명](./attachments/16904d5cdc1e080f0d4decb17e048ae4.jpg)\n\n![W25N01GV 핀과 신호 참고 자료](./attachments/43665582d33d399a1a581c14de7d7671.jpg)\n\n[MIKROE Flash 5 Click](https://www.mikroe.com/flash-5-click) · [Winbond W25N01GV 자료](https://www.winbond.com/hq/support/documentation/?pno=W25N01GV)",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-nand-spi-bringup",
+    "title": "STM32 SPI1 설정과 W25N01GV 첫 읽기·쓰기",
+    "category": "NAND 드라이버",
+    "tags": [
+      "SPI1",
+      "JEDEC",
+      "NUCLEO-F411RE",
+      "단품 테스트"
+    ],
+    "summary": "SPI 초기화 화면, JEDEC ID 응답, NAND 단품 검증의 관찰 결과를 모았습니다.",
+    "body": "## SPI1 초기화\n\n### 버스 클록 활성화\n\nGPIOA와 SPI1의 클록을 켜고 주변장치에 접근하기 전 레지스터를 읽습니다.\n\n![GPIOA와 SPI1 클록 활성화 자료](./attachments/1b198b724187dcc56379d5da6b533c6e.jpg)\n\n### PA5–PA7을 SPI 대체 기능으로 설정\n\n![PA5–PA7 SPI 대체 기능 설정](./attachments/e4be4db2247e44b6aed01ea5860ca001.jpg)\n\n### SPI1 리셋과 통신 모드 설정\n\n![SPI1 리셋 및 해제 자료](./attachments/a2d97a5ae6ba40eeb9690e2f1de7d4c9.jpg)\n\n![SPI1 모드 설정 및 활성화 자료](./attachments/f4ce172e69f54d4599f859c87edf0e46.jpg)\n\n## JEDEC ID 확인\n\n`0x9F` 명령을 보낸 뒤 더미 클록 8개를 보내고 ID를 읽습니다. 11월 18일 단품 시험에서 확인한 응답은 `EF AA 21`입니다. 시리얼 로그의 설정은 115200, 8N1입니다.\n\n![W25N01GV JEDEC ID 읽기 타이밍](./attachments/accfe1808f7f3ecabab226ed8a61a456.jpg)\n\n![시리얼 콘솔의 JEDEC 확인 화면](./attachments/7538cad731d7b3c6ff07bff91df726f7.png)\n\n## 단품 시험에서 확인한 동작\n\n11월 18일 일지에는 블록 Erase 후 `FF` 확인, 2 KiB Program 및 읽기 일치, ECC=0이 기록됐습니다. Erase 없이 `F0` 위에 `0F`를 써 결과가 `00`인 것도 확인했습니다. 이는 해당 단품 실험의 결과이며, 최종 드라이버 통합 시험은 별도입니다. 일지의 Program 측정값 약 5.6 ms 중 약 5.24 ms는 SPI 전송 시간으로 기록됐습니다.",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-gc-mock-victim",
+    "title": "Mock NAND로 GC 후보 블록 선택을 검증하기",
+    "category": "FTL / GC",
+    "tags": [
+      "GC",
+      "Mock NAND",
+      "Greedy",
+      "테스트"
+    ],
+    "summary": "NAND 제약을 Mock으로 재현하고 회수할 블록의 우선순위를 단위 테스트로 확인한 기록입니다.",
+    "body": "## 제약을 재현하는 Mock\n\nMock NAND는 순차 기록, 페이지 재프로그램 금지, 블록 Erase 후 `0xFF`, 공장 Bad Block에 대한 Program/Erase 거부를 재현합니다. 테스트에서 읽기·쓰기·삭제 오류와 타임아웃·ECC를 주입하고, 위반 횟수와 Program/Erase 통계를 확인할 수 있습니다.\n\n## 어떤 블록을 후보로 고르는가\n\n11월 19일 기록의 구현은 관리 영역 192블록을 조회합니다. `CLOSED`이고 무효 페이지가 하나 이상인 블록만 후보입니다. 유효 페이지 수가 가장 적은 블록을 고르고, 동률일 때 Erase 횟수와 블록 번호 순으로 비교합니다. 이 단계의 발동 기준은 빈 블록 수 2개 이하입니다.\n\n## 테스트 결과와 남은 통합\n\n일지에는 Mock 테스트 19개(236개 검사), Victim 테스트 17개(654개 검사)가 통과했다고 기록되어 있습니다. 의도적으로 변경한 세 구현에서 테스트가 오류를 잡는지도 확인했습니다. 이 결과는 Mock과 후보 선택에 해당합니다. 유효 페이지 이동, 매핑 갱신, 블록 회수, 자동 GC와 WAF 측정은 후속 통합 범위입니다.\n\n[Mock NAND·GC 개발 브랜치](https://github.com/clap-min99/SOLID_miniSSD/tree/feature/gc-mock-nand)",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-sata-nvme-notes",
+    "title": "SATA와 NVMe에서 배운 명령 제출·완료 구조",
+    "category": "Host/Linux",
+    "tags": [
+      "SATA",
+      "NVMe",
+      "큐",
+      "프로토콜"
+    ],
+    "summary": "SATA의 ATA 계열과 NVMe의 제출·완료 큐를 비교하고 SOLID가 참고한 부분을 정리했습니다.",
+    "body": "## 두 저장장치 통신 방식\n\nSATA SSD는 SATA 연결과 ATA 명령을 사용하며 NCQ로 요청을 대기시킬 수 있습니다. 일반적인 PCIe NVMe SSD는 여러 Submission Queue와 Completion Queue로 요청과 완료를 관리합니다.\n\n## NVMe 읽기 흐름\n\n호스트는 데이터 버퍼를 준비하고 제출 큐에 READ 명령, CID와 LBA 범위를 기록합니다. 도어벨로 큐 위치 갱신을 알리면 컨트롤러는 명령을 처리하고 지정 버퍼로 데이터를 전송합니다. 완료 큐에는 CID와 상태가 기록됩니다. 예를 들어 NLB가 3이면 해당 필드는 4개 논리 블록을 뜻합니다.\n\n## 우리 프로젝트에 가져온 개념\n\nSOLID의 초기 연결은 ST-LINK VCP 위의 UART입니다. 여기서 참고하는 것은 Opcode와 요청 식별자, 명령 제출과 최종 완료 알림의 분리입니다. 초기 설계는 한 번에 한 요청을 처리합니다.",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
+  },
+  {
+    "id": "solid-first-week-log",
+    "title": "11월 17–19일 개발일지 · 설계 합의에서 단위 테스트까지",
+    "category": "개발일지",
+    "tags": [
+      "설계 회의",
+      "작업 보드",
+      "단위 테스트"
+    ],
+    "summary": "초기 2 KiB 규격, NAND 단품 시험, FTL·GC 단위 테스트를 날짜별로 모았습니다.",
+    "body": "## 11월 17일 · 논리 블록 단위 결정\n\n작업일지에는 Jetson과 STM32 사이의 프로토콜 검토 및 2 KiB 논리 블록 단위 결정이 기록돼 있습니다.\n\n## 11월 18일 · 핀맵과 단품 시험\n\n하드웨어 핀맵을 구성하고 W25N01GV 데이터시트를 검토했습니다. 단품 테스트에서 JEDEC ID, Erase, 2 KiB Program/Read-back을 확인했습니다. 초기 Host 연결은 ST-LINK VCP, NAND 연결은 각 칩의 CS를 사용하는 SPI 경로로 정리했습니다.\n\n## 11월 19일 · 회의 결정과 모듈별 기록\n\n회의록에는 초기 논리 16 MiB, 물리 관리 24 MiB, 칩별 주소 배치와 불량 블록 할당 제외 원칙이 기록돼 있습니다. 일지에서는 Linux RAM 블록 장치 로그 조사, SPI 초기화·루프백 및 JEDEC 확인 테스트 추가, FTL Address Mapper·L2P 단위 테스트, Mock NAND·GC 후보 선택 단위 테스트를 확인할 수 있습니다.\n\n작업 보드 스냅샷에는 총 44개 항목 중 보드 연결 구조와 공통 헤더 합의가 완료, SPI 설정과 FTL 매핑 설계가 진행 중으로 표시돼 있습니다. 작업일지에는 개별 실험과 테스트 결과가 추가로 기록되어 있습니다.\n\n[시스템 아키텍처](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-system-architecture) · [NAND 단품 검증](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-nand-spi-bringup) · [FTL 단위 테스트](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-ftl-address-contract) · [Mock NAND와 GC 단위 테스트](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-gc-mock-victim)",
+    "created": "2026-11-20T02:46:03.346Z",
+    "updated": "2026-11-20T02:46:03.346Z"
   }
 ]
