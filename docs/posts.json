@@ -2,7 +2,7 @@
   {
     "id": "solid-minissd-overview",
     "title": "SOLID Mini SSD를 만드는 이유",
-    "category": "프로젝트 소개",
+    "category": "프로젝트 계획",
     "tags": [
       "Mini SSD",
       "Jetson",
@@ -88,7 +88,7 @@
   {
     "id": "solid-project-plan",
     "title": "SOLID 프로젝트 계획서 · Mini SSD 컨트롤러 구현",
-    "category": "프로젝트 소개",
+    "category": "프로젝트 계획",
     "tags": [
       "Mini SSD",
       "FTL",
@@ -104,7 +104,7 @@
   {
     "id": "solid-system-architecture",
     "title": "Jetson에서 SPI NAND까지 · SOLID 시스템 아키텍처",
-    "category": "프로젝트 소개",
+    "category": "프로젝트 계획",
     "tags": [
       "아키텍처",
       "Jetson",
