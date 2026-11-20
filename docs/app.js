@@ -185,7 +185,7 @@ function renderList() {
 function updateCategoryOptions(categories) {
   const select = edit.elements.category;
   const previous = select.value;
-  const placeholder = element('option', '카테고리를 선택하세요');
+  const placeholder = element('option');
   placeholder.value = '';
   placeholder.defaultSelected = true;
 
@@ -365,10 +365,7 @@ function openEditor(post) {
     for (const field of ['title', 'summary', 'body']) edit.elements[field].value = post[field];
     edit.elements.tags.value = post.tags.join(', ');
   }
-  const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
-  const category = post?.category || topic?.label ||
-    posts.find((entry) => selectedCategory === categoryHash(entry.category))?.category;
-  edit.elements.category.value = category ? categoryHash(category) : '';
+  edit.elements.category.value = post ? categoryHash(post.category) : '';
   syncNewCategoryField();
   updatePreview();
   location.hash = 'write';
