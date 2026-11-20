@@ -221,17 +221,45 @@
     "updated": "2026-11-20T02:46:03.346Z"
   },
   {
-    "id": "solid-first-week-log",
-    "title": "11월 17–19일 개발일지 · 설계 합의에서 단위 테스트까지",
+    "id": "solid-2026-11-17-log",
+    "title": "11월 17일 개발일지 · 논리 블록을 2 KiB로 결정",
+    "summary": "Jetson과 STM32의 통신 방식을 검토하고 논리 블록 크기를 2 KiB로 정했습니다.",
+    "tags": [
+      "2 KiB",
+      "Host/Linux"
+    ],
+    "body": "## 오늘 정한 것\n\nJetson Linux가 STM32로 요청을 보낼 때 사용할 프로토콜을 검토했습니다. 이날 작업일지에는 논리 블록 크기를 2 KiB로 정했다고 기록돼 있습니다.\n\n## 다음 작업\n\n시스템 전체의 데이터 흐름과 USB 연결 방식을 검토합니다. [11월 18일 개발일지](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-2026-11-18-log)",
     "category": "개발일지",
+    "created": "2026-11-17T12:00:00+09:00",
+    "updated": "2026-11-20T02:58:35.354Z"
+  },
+  {
+    "id": "solid-2026-11-18-log",
+    "title": "11월 18일 개발일지 · 핀맵과 NAND 단품 검증",
+    "summary": "하드웨어 핀맵을 구성하고 실제 NAND에서 JEDEC ID, Erase, 2 KiB 쓰기·읽기를 확인했습니다.",
+    "tags": [
+      "핀맵",
+      "SPI NAND",
+      "단품 테스트"
+    ],
+    "body": "## 하드웨어와 통신 설계\n\nSTM32와 SPI NAND의 핀맵을 구성하고 Flash 5 Click 및 W25N01GV 데이터시트를 검토했습니다. 초기 Host 경로는 Jetson 사용자 공간 브리지에서 ST-LINK VCP를 거쳐 STM32 USART2로 이어지는 방향으로 정리했습니다. 2 KiB 단일 요청과 페이지 버퍼 한 개를 사용하는 설계도 검토했습니다.\n\n## NAND 단품 검증\n\n일지에는 SPI1 Mode 0에서 JEDEC ID `EF AA 21`을 읽고, Erase 후 `FF`를 확인했으며 2 KiB를 기록한 뒤 읽은 데이터가 일치했다고 기록돼 있습니다. Erase 없이 `F0` 위에 `0F`를 썼을 때 `00`을 관찰했습니다.\n\n[보드 연결 사진과 회로도](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-system-architecture) · [SPI 설정과 실험 이미지](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-nand-spi-bringup) · [11월 19일 개발일지](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-first-week-log)",
+    "category": "개발일지",
+    "created": "2026-11-18T12:00:00+09:00",
+    "updated": "2026-11-20T02:58:35.354Z"
+  },
+  {
+    "id": "solid-first-week-log",
+    "title": "11월 19일 개발일지 · 설계 합의와 FTL·GC 단위 테스트",
+    "summary": "관리 용량과 PPN 규칙을 논의하고 Linux 로그, SPI 테스트, FTL과 GC의 단위 테스트를 정리했습니다.",
     "tags": [
       "설계 회의",
-      "작업 보드",
+      "FTL",
+      "Mock NAND",
       "단위 테스트"
     ],
-    "summary": "초기 2 KiB 규격, NAND 단품 시험, FTL·GC 단위 테스트를 날짜별로 모았습니다.",
-    "body": "## 11월 17일 · 논리 블록 단위 결정\n\n작업일지에는 Jetson과 STM32 사이의 프로토콜 검토 및 2 KiB 논리 블록 단위 결정이 기록돼 있습니다.\n\n## 11월 18일 · 핀맵과 단품 시험\n\n하드웨어 핀맵을 구성하고 W25N01GV 데이터시트를 검토했습니다. 단품 테스트에서 JEDEC ID, Erase, 2 KiB Program/Read-back을 확인했습니다. 초기 Host 연결은 ST-LINK VCP, NAND 연결은 각 칩의 CS를 사용하는 SPI 경로로 정리했습니다.\n\n## 11월 19일 · 회의 결정과 모듈별 기록\n\n회의록에는 초기 논리 16 MiB, 물리 관리 24 MiB, 칩별 주소 배치와 불량 블록 할당 제외 원칙이 기록돼 있습니다. 일지에서는 Linux RAM 블록 장치 로그 조사, SPI 초기화·루프백 및 JEDEC 확인 테스트 추가, FTL Address Mapper·L2P 단위 테스트, Mock NAND·GC 후보 선택 단위 테스트를 확인할 수 있습니다.\n\n작업 보드 스냅샷에는 총 44개 항목 중 보드 연결 구조와 공통 헤더 합의가 완료, SPI 설정과 FTL 매핑 설계가 진행 중으로 표시돼 있습니다. 작업일지에는 개별 실험과 테스트 결과가 추가로 기록되어 있습니다.\n\n[시스템 아키텍처](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-system-architecture) · [NAND 단품 검증](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-nand-spi-bringup) · [FTL 단위 테스트](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-ftl-address-contract) · [Mock NAND와 GC 단위 테스트](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-gc-mock-victim)",
-    "created": "2026-11-20T02:46:03.346Z",
-    "updated": "2026-11-20T02:46:03.346Z"
+    "body": "## 설계 회의\n\n초기 논리 용량 16 MiB, 물리 관리 영역 24 MiB, 각 NAND의 24개 블록을 사용하는 방향을 기록했습니다. PPN과 실제 물리 주소의 대응은 유지하고, 불량 블록은 할당에서 제외합니다.\n\n## 모듈별 작업\n\n- **Host/Linux** · 커널 모듈, RAM 블록 장치, 파일시스템과 다중 블록 요청 분할 로그를 확인했습니다.\n- **NAND** · SPI 초기화 헤더와 루프백·JEDEC ID 확인 테스트를 추가했습니다.\n- **FTL** · Address Mapper와 L2P 테이블을 구현했습니다. 예약 슬롯 전체의 왕복 변환, 활성 영역 경계, 미매핑 초기값 등을 PC 단위 테스트로 확인했습니다.\n- **GC** · 일지에는 Mock NAND 테스트 19개와 Victim 선택 테스트 17개가 통과했다고 기록돼 있습니다. 자동 GC 통합과 WAF 계측은 후속 작업입니다.\n\n![FTL Address Mapper와 L2P 단위 테스트 통과 로그](./attachments/4adcf8f92b81d3c6d8c0e8fae80e457c.png)\n\n[Linux 요청 흐름과 그림](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-host-protocol) · [FTL 단위 테스트](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-ftl-address-contract) · [Mock NAND와 GC 후보 선택](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-gc-mock-victim)",
+    "category": "개발일지",
+    "created": "2026-11-19T12:00:00+09:00",
+    "updated": "2026-11-20T02:58:35.354Z"
   }
 ]
