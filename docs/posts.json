@@ -84,5 +84,21 @@
     "body": "## 첫 대면 멘토링\n\n2026년 11월 16일, SOLID 팀은 대면 멘토링을 진행하며 프로젝트를 정리하고 이후 일정을 논의했습니다. 프로젝트 기간은 11월 16일에서 12월 16일까지로 기록되어 있습니다.\n\n## 초반 작업 보드의 계획\n\n초반에는 Jetson·STM32·SPI NAND의 연결 구조를 정하고, 호스트 기본 통신과 공통 API 헤더, Mock NAND 환경을 준비하는 작업이 잡혀 있습니다. 이후에는 페이지 단위 저장과 읽기를 연결하고, 사진 복원과 GC를 통합 검증하는 계획입니다.",
     "created": "2026-11-16T12:00:00+09:00",
     "updated": "2026-11-19T17:00:00+09:00"
+  },
+  {
+    "id": "solid-project-plan",
+    "title": "SOLID 프로젝트 계획서 · Mini SSD 컨트롤러 구현",
+    "category": "프로젝트 소개",
+    "tags": [
+      "Mini SSD",
+      "FTL",
+      "GC",
+      "Linux 블록 장치",
+      "SPI NAND"
+    ],
+    "summary": "Jetson Linux, STM32, SPI NAND를 연결해 SSD 컨트롤러를 구현하는 SOLID 팀의 목표, 역할 분담과 검증 계획입니다.",
+    "created": "2026-11-20T02:28:16.992Z",
+    "updated": "2026-11-20T02:28:16.992Z",
+    "body": "## 프로젝트 배경\n\n갱신이 잦은 데이터가 계속 쌓이면 SSD는 유효 데이터를 옮기고 빈 블록을 회수해야 합니다. 이 과정에서 실제 NAND 쓰기량이 늘고 I/O 응답이 늦어질 수 있습니다. SOLID 팀은 Jetson Linux, STM32, SPI NAND Flash를 연결한 Mini SSD 컨트롤러를 구현해, 주소 매핑과 공간 회수가 데이터 정합성·지연시간·쓰기 증폭에 어떤 영향을 주는지 확인합니다.\n\n## 목표와 구현 범위\n\n- **Host/Linux** · Jetson과 STM32를 USB로 연결하고, NAND 기반 저장 장치를 Linux 블록 장치로 등록해 읽기·쓰기 요청을 처리합니다.\n- **SPI NAND 드라이버** · 페이지 읽기와 기록, 블록 삭제를 구현하고 상태와 오류를 상위 계층에 전달합니다.\n- **FTL** · 논리 페이지 번호(LPN)를 물리 페이지 번호(PPN)에 매핑합니다. 같은 논리 주소에 새 데이터를 쓰면 빈 물리 페이지를 할당하고 매핑을 갱신합니다.\n- **Garbage Collection** · 회수할 블록을 선정하고 유효 페이지를 이동한 뒤 블록을 재사용합니다.\n\n## 팀 구성과 역할\n\n- **김선호** · Jetson Linux 커널 드라이버와 USB 통신\n- **도재우** · STM32 기반 SPI NAND 드라이버와 Read/Program/Erase\n- **박수민** · FTL 주소 매핑, 페이지 할당과 데이터 갱신\n- **이규현** · Garbage Collection과 데이터 정합성 검증\n\n## 개발 환경과 일정\n\n하드웨어는 Jetson, STM32, SPI NAND Flash를 사용합니다. 소프트웨어는 C/C++, Embedded Linux, Linux Kernel Driver를 중심으로 개발합니다. Git으로 변경을 관리하고 Mock NAND, CLI 및 자동화 테스트로 동작을 확인합니다.\n\n계획서의 주차표는 W+1부터 W+6까지이며, NAND 드라이버, FTL, GC, Linux 드라이버 개발과 통합·성능 검증 및 발표를 다룹니다.\n\n## 검증할 항목과 결과물\n\n1. NAND 페이지를 기록한 뒤 다시 읽어 원본 데이터와 비교합니다.\n2. 같은 논리 주소에 반복해서 쓴 뒤 최신 데이터가 반환되는지 확인합니다.\n3. GC 실행 전후에 유효 데이터와 주소 매핑이 유지되는지 확인합니다.\n4. 호스트 쓰기량과 NAND 쓰기량을 비교해 쓰기 증폭(WAF)을 분석하고, I/O 지연과 동작 로그를 기록합니다.\n\n위 내용은 구현 목표와 검증 계획입니다. 예정 결과물은 데이터 정합성 테스트, 동작 로그, 성능 및 WAF 분석 자료입니다.\n\n[SOLID Mini SSD 소스 코드](https://github.com/clap-min99/SOLID_miniSSD)"
   }
 ]
