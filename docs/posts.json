@@ -164,7 +164,7 @@
   {
     "id": "solid-nand-board-reference",
     "title": "Flash 5 Click와 W25N01GV · 보드와 NAND 신호 읽기",
-    "category": "NAND 드라이버",
+    "category": "데이터시트",
     "tags": [
       "W25N01GV",
       "Flash 5 Click",

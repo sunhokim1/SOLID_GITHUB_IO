@@ -114,7 +114,10 @@ const technologyTopics = [
   { id: 'ftl-gc', label: 'FTL / GC', categories: ['FTL', 'Garbage Collection', 'GC', 'FTL / GC'] },
   { id: 'host-linux', label: 'Host/Linux', categories: ['Host/Linux'] },
   { id: 'nand', label: 'NAND 드라이버', categories: ['NAND 드라이버'] },
+  { id: 'datasheets', label: '데이터시트', categories: ['데이터시트'] },
 ];
+const nandTopics = technologyTopics.filter((topic) => topic.id !== 'host-linux');
+const nandCategories = new Set(nandTopics.flatMap((topic) => topic.categories));
 const technologyCategories = new Set(technologyTopics.flatMap((topic) => topic.categories));
 
 function categoryHash(category) {
@@ -127,7 +130,8 @@ function renderList() {
   const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
   const category = categories.find((entry) => selectedCategory === categoryHash(entry));
   const technology = selectedCategory === '#technology';
-  const heading = technology ? '사용 기술' : topic?.label || category || '아티클';
+  const nand = selectedCategory === '#nand-flash';
+  const heading = technology ? '사용 기술' : nand ? 'NAND Flash' : topic?.label || category || '아티클';
   function categoryButton(label, hash) {
     const button = element('button', label);
     button.type = 'button';
@@ -136,19 +140,28 @@ function renderList() {
     return button;
   }
 
-  const previousMenu = filters.querySelector('.category-menu');
-  const menu = element('details', '', 'category-menu');
-  const inTechnology = Boolean(technology || topic || technologyCategories.has(category));
-  menu.open = Boolean(previousMenu?.open || (inTechnology && previousMenu?.dataset.selection !== selectedCategory));
-  menu.dataset.selection = selectedCategory;
-  const group = element('div', '', 'category-group');
-  group.setAttribute('role', 'group');
-  group.setAttribute('aria-label', '사용 기술 하위 카테고리');
-  group.append(
+  function categoryMenu(id, label, active, children) {
+    const previous = filters.querySelector('#' + id);
+    const menu = element('details', '', 'category-menu');
+    menu.id = id;
+    menu.open = Boolean(previous?.open || (active && previous?.dataset.selection !== selectedCategory));
+    menu.dataset.selection = selectedCategory;
+    const group = element('div', '', 'category-group');
+    group.append(...children);
+    menu.append(element('summary', label), group);
+    return menu;
+  }
+
+  const inNand = nand || nandTopics.includes(topic) || nandCategories.has(category);
+  const nandMenu = categoryMenu('nand-menu', 'NAND Flash', inNand, [
+    categoryButton('NAND Flash 전체', '#nand-flash'),
+    ...nandTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)),
+  ]);
+  const menu = categoryMenu('technology-menu', '사용 기술', technology || inNand || Boolean(topic) || technologyCategories.has(category), [
     categoryButton('기술 글 전체', '#technology'),
-    ...technologyTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)),
-  );
-  menu.append(element('summary', '사용 기술'), group);
+    nandMenu,
+    categoryButton('Host/Linux', '#topic/host-linux'),
+  ]);
   const otherCategories = categories.filter((entry) => !technologyCategories.has(entry));
   filters.replaceChildren(
     categoryButton('전체', '#articles'),
@@ -161,6 +174,7 @@ function renderList() {
   const query = $('#search').value.trim().toLowerCase();
   const matches = posts.filter((post) =>
     (!technology || technologyCategories.has(post.category))
+    && (!nand || nandCategories.has(post.category))
     && (!topic || topic.categories.includes(post.category))
     && (!category || post.category === category)
     && [post.title, post.category, post.summary, post.body, ...post.tags].join(' ').toLowerCase().includes(query));
@@ -220,7 +234,7 @@ function route() {
   editor.hidden = !isEditing;
   const topic = technologyTopics.find((entry) => '#topic/' + entry.id === hash);
   const isCategory = posts.some((entry) => categoryHash(entry.category) === hash);
-  const category = hash === '#technology' || topic || isCategory ? hash : '';
+  const category = hash === '#technology' || hash === '#nand-flash' || topic || isCategory ? hash : '';
   if (category !== selectedCategory) {
     selectedCategory = category;
     renderList();
