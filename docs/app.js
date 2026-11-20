@@ -154,11 +154,9 @@ function renderList() {
 
   const inNand = nand || nandTopics.includes(topic) || nandCategories.has(category);
   const nandMenu = categoryMenu('nand-menu', 'NAND Flash', inNand, [
-    categoryButton('NAND Flash 전체', '#nand-flash'),
     ...nandTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)),
   ]);
   const menu = categoryMenu('technology-menu', '사용 기술', technology || inNand || Boolean(topic) || technologyCategories.has(category), [
-    categoryButton('기술 글 전체', '#technology'),
     nandMenu,
     categoryButton('Host/Linux', '#topic/host-linux'),
   ]);
