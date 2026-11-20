@@ -47,3 +47,27 @@
 @media (max-width: 580px) {
   #article { margin-top: 20px; }
 }
+
+.sidebar .category-menu summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: .875rem;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+.sidebar .category-menu summary::-webkit-details-marker { display: none; }
+.sidebar .category-menu summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-right: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+.sidebar .category-menu[open] summary::after { transform: rotate(45deg); }
+.sidebar .category-menu summary:hover { background: #e4f1e8; color: #174c34; }

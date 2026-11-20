@@ -134,15 +134,23 @@ function renderList() {
     return button;
   }
 
+  const previousMenu = filters.querySelector('.category-menu');
+  const menu = element('details', '', 'category-menu');
+  const inTechnology = Boolean(technology || topic || technologyCategories.has(category));
+  menu.open = Boolean(previousMenu?.open || (inTechnology && previousMenu?.dataset.selection !== selectedCategory));
+  menu.dataset.selection = selectedCategory;
   const group = element('div', '', 'category-group');
   group.setAttribute('role', 'group');
   group.setAttribute('aria-label', '사용 기술 하위 카테고리');
-  group.append(...technologyTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)));
+  group.append(
+    categoryButton('기술 글 전체', '#technology'),
+    ...technologyTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)),
+  );
+  menu.append(element('summary', '사용 기술'), group);
   const otherCategories = categories.filter((entry) => !technologyCategories.has(entry));
   filters.replaceChildren(
     categoryButton('전체', '#articles'),
-    categoryButton('사용 기술', '#technology'),
-    group,
+    menu,
     ...otherCategories.map((entry) => categoryButton(entry, categoryHash(entry))),
   );
 
