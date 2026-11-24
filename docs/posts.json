@@ -208,21 +208,6 @@
     "updated": "2026-11-20T02:47:33.225Z"
   },
   {
-    "id": "solid-first-week-log",
-    "title": "11월 19일 개발일지 · 설계 합의와 FTL·GC 단위 테스트",
-    "summary": "관리 용량과 PPN 규칙을 논의하고 Linux 로그, SPI 테스트, FTL과 GC의 단위 테스트를 정리했습니다.",
-    "tags": [
-      "설계 회의",
-      "FTL",
-      "Mock NAND",
-      "단위 테스트"
-    ],
-    "body": "## Host/Linux와 NAND\n\n커널 모듈, RAM 블록 장치, 파일시스템과 다중 블록 요청 분할 로그를 확인했습니다. NAND 쪽에서는 SPI 초기화 헤더와 루프백·JEDEC 확인 코드가 추가됐습니다. 이날 일지에 실제 Jetson–STM32–NAND 통합 시험 결과는 없습니다.\n\n## FTL · 주소 변환과 매핑\n\n`address_mapper.c`와 `ftl_map.c`를 구현했습니다. 작업일지에 따르면 `tests/ftl`의 `make test`로 예약 슬롯 32,768개 왕복 변환, 활성 경계 1535/1536, 미매핑 초기값과 유효하지 않은 매핑 요청의 실패를 검증했고 통과했습니다.\n\n![FTL Address Mapper와 L2P 단위 테스트 통과 로그](./attachments/4adcf8f92b81d3c6d8c0e8fae80e457c.png)\n\n## GC와 Mock NAND\n\nMock NAND에서 순차 쓰기, 재기록 제한, 불량 블록·오류 주입을 검증하고 GC 후보 선정 조건과 우선순위를 확인했습니다. 작업일지에는 Mock NAND 19개 테스트(236개 검사), Victim 선택 17개 테스트(654개 검사)가 통과했다고 기록돼 있습니다.\n\n[FTL 테스트와 설계](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-ftl-address-contract) · [Mock NAND와 GC 후보 선정](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-gc-mock-victim) · [공통 NAND 헤더 커밋](https://github.com/clap-min99/SOLID_miniSSD/commit/f9126128)",
-    "category": "개발일지",
-    "created": "2026-11-19T12:00:00+09:00",
-    "updated": "2026-11-24T01:55:50.344Z"
-  },
-  {
     "id": "solid-2026-11-16-kickoff",
     "title": "11월 16일 개발일지 · 첫 멘토링과 일정 논의",
     "category": "개발일지",
