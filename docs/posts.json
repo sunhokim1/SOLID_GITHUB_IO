@@ -1,20 +1,5 @@
 [
   {
-    "id": "solid-2026-11-23-log",
-    "title": "11월 23일 개발일지 · FTL·GC 연동과 Linux 상태 코드",
-    "category": "개발일지",
-    "tags": [
-      "FTL",
-      "GC",
-      "Linux",
-      "단위 테스트"
-    ],
-    "summary": "GC를 FTL 공통 헤더에 연결하고, 커밋에 기록된 단위 테스트 결과와 Linux 헤더 변경을 정리했습니다.",
-    "body": "## 바뀐 코드\n\n- **FTL** · 정정 가능한 ECC 읽기에서 read reclaim을 추가하고, GC가 사용하는 공개 헤더 `ftl_gc.h`를 분리했습니다. `tests/ftl/test_ftl.c`도 변경됐습니다.\n- **GC** · FTL 공개 헤더와 공통 오류형 `solid_err_t`를 사용하도록 변경했습니다. GC 테스트의 가짜 FTL도 새 오류 코드와 인터페이스에 맞췄습니다.\n- **Linux** · `include/protocol.h`에 `SSD_Status`를 추가해 FTL·NAND·HIL 오류를 구분했습니다. 이 변경은 PR #8로 `develop`에 병합됐습니다.\n\n## 커밋에 기록된 테스트 결과\n\nGC 변경 커밋은 **Victim 선정 661개 검사, Collect 76개 검사, Mock NAND 236개 검사 통과**와 FTL 테스트 통과를 기록했습니다. Linux 상태 코드 변경의 실물 UART 왕복 테스트 결과는 확인되지 않았습니다.\n\n[FTL 커밋](https://github.com/clap-min99/SOLID_miniSSD/commit/4a9f0fb2ef7aa84dc73dd51aade090b41e8d2adc) · [GC 테스트 기록](https://github.com/clap-min99/SOLID_miniSSD/commit/076adb5757fab28c3f2c9bd1523ef66077a3bc1d) · [Linux 상태 코드 병합](https://github.com/clap-min99/SOLID_miniSSD/commit/010ad933131668c4885003bd364ebf00f91efddf)",
-    "created": "2026-11-23T12:00:00+09:00",
-    "updated": "2026-11-24T01:55:50.344Z"
-  },
-  {
     "id": "solid-2026-11-22-log",
     "title": "11월 22일 개발일지 · 확인 가능한 테스트 기록 없음",
     "category": "개발일지",
