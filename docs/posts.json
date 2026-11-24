@@ -223,20 +223,6 @@
     "updated": "2026-11-24T01:55:50.344Z"
   },
   {
-    "id": "solid-2026-11-18-log",
-    "title": "11월 18일 개발일지 · 핀맵과 NAND 단품 검증",
-    "summary": "하드웨어 핀맵을 구성하고 실제 NAND에서 JEDEC ID, Erase, 2 KiB 쓰기·읽기를 확인했습니다.",
-    "tags": [
-      "핀맵",
-      "SPI NAND",
-      "단품 테스트"
-    ],
-    "body": "## 테스트한 코드와 장치\n\n`w25n_test.c`를 NUCLEO-F411RE에서 실행했습니다. W25N01GV 한 개를 SPI1 Mode 0, 약 3.1 MHz로 연결했습니다. 작업일지에는 칩 ID 확인, 불량 블록 스캔, 블록 삭제, 2 KiB 쓰기·읽기, 삭제 없는 재기록 실험이 남아 있습니다.\n\n## 결과\n\n- JEDEC ID: `EF AA 21`. 해당 시험에서 불량 블록 0개로 기록했습니다.\n- 블록 1023을 지운 뒤 `FF`를 확인했습니다. 2,048 B를 기록하고 다시 읽은 데이터가 일치했으며 ECC=0이었습니다.\n- 지우지 않고 `F0` 위에 `0F`를 써 결과가 `00`인 것을 확인했습니다.\n- 작업일지의 단품 로그: Erase 583 µs, Program 5,596 µs, Page Data Read 78 µs. Program 측정에는 SPI 전송 시간이 포함됩니다.\n\n[배선 사진과 회로도](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-system-architecture) · [SPI 설정과 단품 검증](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-nand-spi-bringup)",
-    "category": "개발일지 › NAND",
-    "created": "2026-11-18T12:00:00+09:00",
-    "updated": "2026-11-24T01:55:50.344Z"
-  },
-  {
     "id": "solid-2026-11-16-kickoff",
     "title": "11월 16일 개발일지 · 첫 멘토링과 일정 논의",
     "category": "개발일지",
