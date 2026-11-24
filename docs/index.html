@@ -6,7 +6,7 @@
   <meta name="description" content="SOLID 프로젝트의 기술 블로그">
   <title>SOLID Engineering</title>
   <link rel="stylesheet" href="./style.css?v=10">
-  <script type="module" src="./app.js?v=10"></script>
+  <script type="module" src="./app.js?v=11"></script>
 </head>
 <body>
   <a class="skip" href="#main">본문으로 건너뛰기</a>
@@ -45,9 +45,12 @@
         </select></label>
         <label>태그<input name="tags" maxlength="140" placeholder="쉼표로 구분"></label>
       </div>
-      <label id="new-category-field" hidden>새 카테고리 이름
-        <input name="newCategory" maxlength="30" placeholder="예: 테스트 기록" disabled>
-      </label>
+      <div class="fields" id="new-category-field" hidden>
+        <label>상위 카테고리<select name="categoryParent" disabled>
+          <option value="">최상위 카테고리</option>
+        </select></label>
+        <label>새 카테고리 이름<input name="newCategory" maxlength="30" placeholder="예: 테스트 기록" disabled></label>
+      </div>
       <label>요약<input name="summary" maxlength="200"></label>
       <div class="attachments" id="drop-zone">
         <label class="file-button">파일 첨부<input id="attachment-file" type="file" multiple></label>

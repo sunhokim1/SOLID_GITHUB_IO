@@ -120,13 +120,30 @@ const nandTopics = technologyTopics.filter((topic) => topic.id !== 'host-linux')
 const nandCategories = new Set(nandTopics.flatMap((topic) => topic.categories));
 const technologyCategories = new Set(technologyTopics.flatMap((topic) => topic.categories));
 
+const categorySeparator = ' › ';
+const journalCategories = ['NAND', 'FTL', 'GC', 'Linux']
+  .map((topic) => '개발일지' + categorySeparator + topic);
+
+function categoryPaths() {
+  const paths = new Set();
+  for (const category of [...journalCategories, ...posts.map((post) => post.category)]) {
+    const parts = category.split(categorySeparator);
+    parts.forEach((_, index) => paths.add(parts.slice(0, index + 1).join(categorySeparator)));
+  }
+  return [...paths].sort((a, b) => a.localeCompare(b, 'ko'));
+}
+
+function inCategory(category, parent) {
+  return category === parent || category.startsWith(parent + categorySeparator);
+}
+
 function categoryHash(category) {
   return '#category/' + encodeURIComponent(category);
 }
 
 function renderList() {
   const filters = $('#filters');
-  const categories = [...new Set(posts.map((post) => post.category))].sort((a, b) => a.localeCompare(b, 'ko'));
+  const categories = categoryPaths();
   const topic = technologyTopics.find((entry) => selectedCategory === '#topic/' + entry.id);
   const category = categories.find((entry) => selectedCategory === categoryHash(entry));
   const technology = selectedCategory === '#technology';
@@ -141,7 +158,7 @@ function renderList() {
   }
 
   function categoryMenu(id, label, active, children) {
-    const previous = filters.querySelector('#' + id);
+    const previous = filters.querySelector('#' + CSS.escape(id));
     const menu = element('details', '', 'category-menu');
     menu.id = id;
     menu.open = Boolean(previous?.open || (active && previous?.dataset.selection !== selectedCategory));
@@ -152,33 +169,44 @@ function renderList() {
     return menu;
   }
 
-  const inNand = nand || nandTopics.includes(topic) || nandCategories.has(category);
-  const nandMenu = categoryMenu('nand-menu', 'NAND Flash', inNand, [
-    ...nandTopics.map((entry) => categoryButton(entry.label, '#topic/' + entry.id)),
-  ]);
-  const menu = categoryMenu('technology-menu', '사용 기술', technology || inNand || Boolean(topic) || technologyCategories.has(category), [
+  function categoryBranch(path, label, hash = categoryHash(path), aliases = [path]) {
+    const children = categories.filter((entry) =>
+      aliases.some((parent) =>
+        entry.startsWith(parent + categorySeparator)
+        && !entry.slice(parent.length + categorySeparator.length).includes(categorySeparator)));
+    if (!children.length) return categoryButton(label, hash);
+    const active = selectedCategory === hash || Boolean(category && aliases.some((parent) => inCategory(category, parent)));
+    return categoryMenu('menu-' + encodeURIComponent(path), label, active, [
+      categoryButton(label + ' 전체', hash),
+      ...children.map((entry) => categoryBranch(entry, entry.split(categorySeparator).at(-1))),
+    ]);
+  }
+
+  const topicBranch = (entry) => categoryBranch(entry.label, entry.label, '#topic/' + entry.id, entry.categories);
+  const categoryRoot = category?.split(categorySeparator)[0];
+  const inNand = nand || nandTopics.includes(topic) || nandCategories.has(categoryRoot);
+  const nandMenu = categoryMenu('nand-menu', 'NAND Flash', inNand, nandTopics.map(topicBranch));
+  const menu = categoryMenu('technology-menu', '사용 기술', technology || inNand || Boolean(topic) || technologyCategories.has(categoryRoot), [
     nandMenu,
-    categoryButton('Host/Linux', '#topic/host-linux'),
+    topicBranch(technologyTopics.find((entry) => entry.id === 'host-linux')),
   ]);
-  const otherCategories = categories.filter((entry) => !technologyCategories.has(entry));
+  const roots = categories.filter((entry) => !entry.includes(categorySeparator) && !technologyCategories.has(entry));
   const projectPlan = '프로젝트 계획';
   filters.replaceChildren(
     categoryButton('전체', '#articles'),
-    ...otherCategories.filter((entry) => entry === projectPlan)
-      .map((entry) => categoryButton(entry, categoryHash(entry))),
+    ...roots.filter((entry) => entry === projectPlan).map((entry) => categoryBranch(entry, entry)),
     menu,
-    ...otherCategories.filter((entry) => entry !== projectPlan)
-      .map((entry) => categoryButton(entry, categoryHash(entry))),
+    ...roots.filter((entry) => entry !== projectPlan).map((entry) => categoryBranch(entry, entry)),
   );
 
   $('#articles-title').textContent = heading;
   updateCategoryOptions(categories);
   const query = $('#search').value.trim().toLowerCase();
   const matches = posts.filter((post) =>
-    (!technology || technologyCategories.has(post.category))
-    && (!nand || nandCategories.has(post.category))
-    && (!topic || topic.categories.includes(post.category))
-    && (!category || post.category === category)
+    (!technology || technologyCategories.has(post.category.split(categorySeparator)[0]))
+    && (!nand || nandCategories.has(post.category.split(categorySeparator)[0]))
+    && (!topic || topic.categories.some((parent) => inCategory(post.category, parent)))
+    && (!category || inCategory(post.category, category))
     && [post.title, post.category, post.summary, post.body, ...post.tags].join(' ').toLowerCase().includes(query));
   const list = $('#posts');
   list.replaceChildren();
@@ -215,6 +243,12 @@ function updateCategoryOptions(categories) {
   add.value = newCategoryChoice;
   select.replaceChildren(placeholder, ...options, add);
   select.value = [placeholder, ...options, add].some((option) => option.value === previous) ? previous : '';
+  const parent = edit.elements.categoryParent;
+  const previousParent = parent.value;
+  const root = element('option', '최상위 카테고리');
+  root.value = '';
+  parent.replaceChildren(root, ...options.map((option) => option.cloneNode(true)));
+  parent.value = options.some((option) => option.value === previousParent) ? previousParent : '';
   syncNewCategoryField();
 }
 
@@ -222,6 +256,7 @@ function syncNewCategoryField() {
   const adding = edit.elements.category.value === newCategoryChoice;
   const input = edit.elements.newCategory;
   $('#new-category-field').hidden = !adding;
+  edit.elements.categoryParent.disabled = !adding;
   input.disabled = !adding;
   input.required = adding;
 }
@@ -235,7 +270,7 @@ function route() {
   const isEditing = hash === '#write' && Boolean(session);
   editor.hidden = !isEditing;
   const topic = technologyTopics.find((entry) => '#topic/' + entry.id === hash);
-  const isCategory = posts.some((entry) => categoryHash(entry.category) === hash);
+  const isCategory = categoryPaths().some((entry) => categoryHash(entry) === hash);
   const category = hash === '#technology' || hash === '#nand-flash' || topic || isCategory ? hash : '';
   if (category !== selectedCategory) {
     selectedCategory = category;
@@ -524,7 +559,8 @@ edit.addEventListener('submit', (event) => {
       id: editing?.id || crypto.randomUUID(),
       title: values.title.trim(),
       category: values.category === newCategoryChoice
-        ? values.newCategory.trim()
+        ? [decodeURIComponent(values.categoryParent.slice('#category/'.length)), values.newCategory.trim()]
+          .filter(Boolean).join(categorySeparator)
         : decodeURIComponent(values.category.slice('#category/'.length)),
       tags: [...new Set(values.tags.split(',').map((tag) => tag.trim()).filter(Boolean))],
       summary: values.summary.trim(),
@@ -532,6 +568,9 @@ edit.addEventListener('submit', (event) => {
       created: editing?.created || new Date().toISOString(),
       updated: new Date().toISOString(),
     };
+    if (values.category === newCategoryChoice && (!values.newCategory.trim() || values.newCategory.includes('›'))) {
+      throw new Error('새 카테고리 이름을 입력해 주세요. › 문자는 사용할 수 없습니다.');
+    }
     if (!post.title || !post.category || !post.body) throw new Error('제목, 카테고리와 본문을 입력해 주세요.');
     await uploadAttachments(post.body);
     await save([...posts.filter((entry) => entry.id !== post.id), post], (editing ? 'Edit: ' : 'Publish: ') + post.title);
