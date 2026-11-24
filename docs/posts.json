@@ -1,17 +1,5 @@
 [
   {
-    "id": "solid-2026-11-21-log",
-    "title": "11월 21일 개발일지 · 확인 가능한 테스트 기록 없음",
-    "category": "개발일지",
-    "tags": [
-      "기록 없음"
-    ],
-    "summary": "확인한 프로젝트 자료에 이날 실행한 테스트나 결과가 남아 있지 않습니다.",
-    "body": "## 기록 상태\n\n확인한 팀 작업일지와 GitHub 기록에서 11월 21일에 수행한 테스트의 코드·명령·출력은 확인되지 않았습니다. 마지막으로 확인한 실물 관련 변경은 [11월 20일 NAND Probe 검사 코드](https://sunhokim1.github.io/SOLID_GITHUB_IO/#post/solid-2026-11-20-log)입니다.",
-    "created": "2026-11-21T12:00:00+09:00",
-    "updated": "2026-11-24T01:55:50.344Z"
-  },
-  {
     "id": "solid-system-architecture",
     "title": "Jetson에서 SPI NAND까지 · SOLID 시스템 아키텍처",
     "category": "프로젝트 계획",
