@@ -1,5 +1,15 @@
 [
   {
+    "id": "3fb72166-6423-4b43-9555-58ea0c949eb7",
+    "title": "2026년 11월 23일",
+    "category": "개발일지 › Linux",
+    "tags": [],
+    "summary": "프로토콜 헤더 컴파일 및 시리얼 포트 확인",
+    "body": "![image.png](./attachments/d53b6ad5-c658-41d2-aec4-c3d2eac7d0c6.png)",
+    "created": "2026-11-24T02:17:36.179Z",
+    "updated": "2026-11-24T02:17:36.179Z"
+  },
+  {
     "id": "18e28307-f2a0-4c0f-bebb-b439df212584",
     "title": "2026년 11월 20일",
     "category": "개발일지 › Linux",
@@ -228,13 +238,13 @@
     "updated": "2026-11-20T02:47:33.225Z"
   },
   {
-    "id": "3fb72166-6423-4b43-9555-58ea0c949eb7",
-    "title": "2026년 11월 23일",
+    "id": "64c984ef-835f-47ee-b0bd-9b61ddd72386",
+    "title": "2026년 11월 24일",
     "category": "개발일지 › Linux",
     "tags": [],
-    "summary": "프로토콜 헤더 컴파일 및 시리얼 포트 확인",
-    "body": "![image.png](./attachments/d53b6ad5-c658-41d2-aec4-c3d2eac7d0c6.png)",
-    "created": "2026-11-24T02:17:36.179Z",
-    "updated": "2026-11-24T02:17:36.179Z"
+    "summary": "STM32 echo, READ 헤더, 오류 응답 검증",
+    "body": "![image.png](./attachments/1df1b91c-78ed-431b-9e2b-69d40c0670a9.png)\n\nJetson의 RAM 블록 장치 읽기, 쓰기와 실제 STM32를 연결한 UART 요청 전달, 헤더 해석, 성공 및 오류 응답까지 확인",
+    "created": "2026-11-24T02:19:19.251Z",
+    "updated": "2026-11-24T02:19:19.251Z"
   }
 ]
