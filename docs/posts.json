@@ -223,8 +223,8 @@
     "category": "개발일지 › Linux",
     "tags": [],
     "summary": "Jetson <-> STM32 통신 규약 검토",
-    "body": "feature/host 브랜치를 기준으로 초기 경로를 Jetson 사용자 공간 브릿지 → ST‑LINK VCP(UART) → STM32 HIL로 확인\n\nREAD·`WRITE`에 필요한 명령 코드, 요청 ID, 시작 LBA, 블록 개수와 응답 상태를 정리\n\n팀 문서의 초기 기준은 논리 블록 2 KiB, 명령당 한 블록, 한 번에 요청 하나\n\nJetson 브릿지와 STM32 HIL이 공유할 프로토콜 헤더의 위치와 역할 검토",
+    "body": "feature/host 브랜치를 기준으로 초기 경로를 Jetson 사용자 공간 브릿지 → ST‑LINK VCP(UART) → STM32 HIL로 확인\n\nREAD · WRITE에 필요한 명령 코드, 요청 ID, 시작 LBA, 블록 개수와 응답 상태를 정리\n\n팀 문서의 초기 기준은 논리 블록 2 KiB, 명령당 한 블록, 한 번에 요청 하나\n\nJetson 브릿지와 STM32 HIL이 공유할 프로토콜 헤더의 위치와 역할 검토",
     "created": "2026-11-24T02:16:45.371Z",
-    "updated": "2026-11-24T02:16:45.371Z"
+    "updated": "2026-11-24T02:16:57.435Z"
   }
 ]
